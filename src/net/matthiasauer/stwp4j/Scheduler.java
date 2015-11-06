@@ -1,8 +1,7 @@
-package net.matthiasauer.stwp4j.scheduler;
+package net.matthiasauer.stwp4j;
 
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,7 +14,8 @@ public class Scheduler {
     private static final AtomicInteger instanceCounter =
             new AtomicInteger(0);
     private final int id = instanceCounter.incrementAndGet();
-    
+    private final ConnectionHubImplementation connectionHub =
+            new ConnectionHubImplementation();    
     private Set<LightweightProcess> processes =
             new HashSet<LightweightProcess>();
 
@@ -40,11 +40,20 @@ public class Scheduler {
             // execute it
             ExecutionState newState = process.execute();
             
+            if (newState == null) {
+                logger.error("ExecutionState 'null' of process : " + process);
+                throw new IllegalStateException("returned ExecutionState was null !");
+            }
+            
             // if the state is not finished execute it again !
             if (newState != ExecutionState.Finished) {
                 // add it at the end of the queue
                 queue.add(process);
             } 
         }
+    }
+
+    public ConnectionHub getConnectionHub() {
+        return this.connectionHub;
     }
 }

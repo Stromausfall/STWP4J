@@ -1,4 +1,4 @@
-package net.matthiasauer.stwp4j.scheduler;
+package net.matthiasauer.stwp4j;
 
 public interface LightweightProcess {
     ExecutionState execute();

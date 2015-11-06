@@ -1,4 +1,4 @@
-package test.net.matthiasauer.stwp4j.scheduler;
+package test.net.matthiasauer.stwp4j;
 
 import static org.junit.Assert.*;
 
@@ -6,9 +6,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
-import net.matthiasauer.stwp4j.scheduler.ExecutionState;
-import net.matthiasauer.stwp4j.scheduler.LightweightProcess;
-import net.matthiasauer.stwp4j.scheduler.Scheduler;
+import net.matthiasauer.stwp4j.ExecutionState;
+import net.matthiasauer.stwp4j.LightweightProcess;
+import net.matthiasauer.stwp4j.Scheduler;
 
 public class SchedulerTest {
 
@@ -36,7 +36,7 @@ public class SchedulerTest {
                         counter++;
                         
                         if (counter <= upTo) {
-                            return ExecutionState.Waiting;
+                            return ExecutionState.Working;
                         } else {
                             return ExecutionState.Finished;
                         }
@@ -73,4 +73,28 @@ public class SchedulerTest {
                 "00000111112222233334445",
                 data.get());
     }
+
+    @Test(expected=IllegalStateException.class)
+    public void testSchedulerCausesExceptionIfProcessReturnsNull() {
+        Scheduler scheduler = new Scheduler();
+        scheduler.addProcess(
+                new LightweightProcess() {
+                    @Override
+                    public ExecutionState execute() {
+                        return null;
+                    }
+                });
+        
+        scheduler.performIteration();
+    }
+
+    @Test
+    public void testGetMessageHubResultDoesntChange() {
+        Scheduler scheduler = new Scheduler();
+        assertSame(
+                "getMessageHub should always return the same instance",
+                scheduler.getConnectionHub(),
+                scheduler.getConnectionHub());
+    }
+
 }
