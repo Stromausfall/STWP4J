@@ -2,23 +2,44 @@ package test.net.matthiasauer.stwp4j;
 
 import static org.junit.Assert.*;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import net.matthiasauer.stwp4j.ChannelType;
 import net.matthiasauer.stwp4j.ExecutionState;
+import net.matthiasauer.stwp4j.InChannel;
 import net.matthiasauer.stwp4j.LightweightProcess;
+import net.matthiasauer.stwp4j.OutChannel;
 import net.matthiasauer.stwp4j.Scheduler;
+import net.matthiasauer.stwp4j.utils.Pair;
 
 public class SchedulerTest {
-
+    private Collection<Pair<String, ChannelType>> testChannelRequests;
+    
+    @Before
+    public void setUp() throws Exception {
+        this.testChannelRequests =
+                Arrays.asList(
+                        new Pair<String, ChannelType>("foo", ChannelType.Input));
+    }
+    
     @Test(expected = IllegalArgumentException.class)
     public void testSchedulerAddProcessNoDuplicates() {
         Scheduler scheduler = new Scheduler();
         LightweightProcess lightweightProcess =
-                new LightweightProcess() {
+                new LightweightProcess(testChannelRequests) {
                     public ExecutionState execute() {
                         return ExecutionState.Finished;
+                    }
+
+                    @Override
+                    public void initialize(Collection<Pair<String, InChannel>> inputChannels,
+                            Collection<Pair<String, OutChannel>> outputChannels) {
                     }
                 };
         
@@ -28,7 +49,7 @@ public class SchedulerTest {
     
     private LightweightProcess createTestProcess(AtomicReference<String> data, final int upTo) {
         return
-                new LightweightProcess() {
+                new LightweightProcess(testChannelRequests) {
                     int counter = 0;
             
                     public ExecutionState execute() {
@@ -40,6 +61,11 @@ public class SchedulerTest {
                         } else {
                             return ExecutionState.Finished;
                         }
+                    }
+
+                    @Override
+                    public void initialize(Collection<Pair<String, InChannel>> inputChannels,
+                            Collection<Pair<String, OutChannel>> outputChannels) {
                     }
                 };
     }
@@ -78,10 +104,15 @@ public class SchedulerTest {
     public void testSchedulerCausesExceptionIfProcessReturnsNull() {
         Scheduler scheduler = new Scheduler();
         scheduler.addProcess(
-                new LightweightProcess() {
+                new LightweightProcess(testChannelRequests) {
                     @Override
                     public ExecutionState execute() {
                         return null;
+                    }
+
+                    @Override
+                    public void initialize(Collection<Pair<String, InChannel>> inputChannels,
+                            Collection<Pair<String, OutChannel>> outputChannels) {
                     }
                 });
         
@@ -89,12 +120,95 @@ public class SchedulerTest {
     }
 
     @Test
-    public void testGetMessageHubResultDoesntChange() {
+    public void testAddProcessCallsInitializeMethod() {
+        AtomicBoolean initializeMethodCalled =
+                new AtomicBoolean(false);
         Scheduler scheduler = new Scheduler();
-        assertSame(
-                "getMessageHub should always return the same instance",
-                scheduler.getConnectionHub(),
-                scheduler.getConnectionHub());
+        scheduler.addProcess(
+                new LightweightProcess(testChannelRequests) {
+                    @Override
+                    public ExecutionState execute() {
+                        return null;
+                    }
+
+                    @Override
+                    public void initialize(Collection<Pair<String, InChannel>> inputChannels,
+                            Collection<Pair<String, OutChannel>> outputChannels) {
+                        initializeMethodCalled.set(true);
+                    }
+                });
+        
+        assertTrue(
+                "initialize method was not called after adding process",
+                initializeMethodCalled.get());
     }
 
+    @Test
+    public void testAddProcessCallsInitializeMethodAndChannelsAreCreated() {
+        Scheduler scheduler = new Scheduler();
+        Collection<Pair<String, ChannelType>> customChannelRequests =
+                Arrays.asList(
+                        new Pair<String, ChannelType>("foo1", ChannelType.Input),
+                        new Pair<String, ChannelType>("foo2", ChannelType.Input),
+                        new Pair<String, ChannelType>("foo3", ChannelType.OutputMultiplex),
+                        new Pair<String, ChannelType>("foo4", ChannelType.OutputMultiplex),
+                        new Pair<String, ChannelType>("foo5", ChannelType.OutputShared));
+        scheduler.addProcess(
+                new LightweightProcess(customChannelRequests) {
+                    @Override
+                    public ExecutionState execute() {
+                        return null;
+                    }
+
+                    @Override
+                    public void initialize(Collection<Pair<String, InChannel>> inputChannels,
+                            Collection<Pair<String, OutChannel>> outputChannels) {
+                        assertEquals(
+                                "number of input input channels not correct",
+                                2,
+                                inputChannels.size());
+                        assertEquals(
+                                "number of output input channels not correct",
+                                3,
+                                outputChannels.size());
+                    }
+                });
+    }
+    
+    private void addDummyLightWeightProcessToScheduler(
+            Scheduler scheduler,
+            Collection<Pair<String, ChannelType>> customChannelRequests) {
+        scheduler.addProcess(
+                new LightweightProcess(customChannelRequests) {
+                    @Override
+                    public ExecutionState execute() {
+                        return ExecutionState.Finished;
+                    }
+
+                    @Override
+                    public void initialize(Collection<Pair<String, InChannel>> inputChannels,
+                            Collection<Pair<String, OutChannel>> outputChannels) {
+                    }
+                });
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPerformIterationChecksThatChannelConnectionsAreValid1() {
+        Scheduler scheduler = new Scheduler();
+        Collection<Pair<String, ChannelType>> customChannelRequests1=
+                Arrays.asList(
+                        new Pair<String, ChannelType>("foo1", ChannelType.Input));
+        Collection<Pair<String, ChannelType>> customChannelRequests2=
+                Arrays.asList(
+                        new Pair<String, ChannelType>("foo1", ChannelType.OutputMultiplex));
+        Collection<Pair<String, ChannelType>> customChannelRequests3=
+                Arrays.asList(
+                        new Pair<String, ChannelType>("foo1", ChannelType.OutputShared));
+        
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests1);
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests2);
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests3);
+        
+        scheduler.performIteration();
+    }
 }
