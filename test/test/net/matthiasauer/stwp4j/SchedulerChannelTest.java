@@ -1,0 +1,252 @@
+package test.net.matthiasauer.stwp4j;
+
+import static org.junit.Assert.assertEquals;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.junit.Test;
+
+import net.matthiasauer.stwp4j.ChannelInPort;
+import net.matthiasauer.stwp4j.ChannelOutPort;
+import net.matthiasauer.stwp4j.ChannelPortsCreated;
+import net.matthiasauer.stwp4j.ChannelPortsRequest;
+import net.matthiasauer.stwp4j.ExecutionState;
+import net.matthiasauer.stwp4j.LightweightProcess;
+import net.matthiasauer.stwp4j.PortType;
+import net.matthiasauer.stwp4j.Scheduler;
+
+public class SchedulerChannelTest {
+    private void addDummyLightWeightProcessToScheduler(
+            Scheduler scheduler,
+            Collection<ChannelPortsRequest<?>> customChannelRequests) {
+        scheduler.addProcess(
+                new LightweightProcess(customChannelRequests) {
+                    @Override
+                    public ExecutionState execute() {
+                        return ExecutionState.Finished;
+                    }
+
+                    @Override
+                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                    }
+                });
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testIncorrectOutputSharedAndMultiplex() {
+        Scheduler scheduler = new Scheduler();
+        Collection<ChannelPortsRequest<?>> customChannelRequests1=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.Output, String.class));
+        Collection<ChannelPortsRequest<?>> customChannelRequests2=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.InputMultiplex, String.class));
+        Collection<ChannelPortsRequest<?>> customChannelRequests3=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.InputShared, String.class));
+        
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests1);
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests2);
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests3);
+        
+        scheduler.performIteration();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testIncorrectOutputSharedAndExclusive() {
+        Scheduler scheduler = new Scheduler();
+        Collection<ChannelPortsRequest<?>> customChannelRequests1=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.Output, String.class));
+        Collection<ChannelPortsRequest<?>> customChannelRequests2=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.InputExclusive, String.class));
+        Collection<ChannelPortsRequest<?>> customChannelRequests3=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.InputShared, String.class));
+
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests1);
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests2);
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests3);
+        
+        scheduler.performIteration();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testIncorrectInputIncludingExclusive() {
+        Scheduler scheduler = new Scheduler();
+        Collection<ChannelPortsRequest<?>> customChannelRequests1=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.Output, String.class));
+        Collection<ChannelPortsRequest<?>> customChannelRequests2=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.OutputExclusive, String.class));
+        Collection<ChannelPortsRequest<?>> customChannelRequests3=
+                Arrays.asList(
+                        new ChannelPortsRequest<String>("foo1", PortType.InputShared, String.class));
+
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests1);
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests2);
+        this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests3);
+        
+        scheduler.performIteration();
+    }
+    
+    private final String testMessage = "Hello World !";
+    
+    private void addDummyLightWeightSendProcessToScheduler(
+            String channelId,
+            Scheduler scheduler,
+            PortType outPortType) {
+        Collection<ChannelPortsRequest<?>> customChannelRequests =
+                Arrays.asList(
+                        new ChannelPortsRequest<String>(channelId, outPortType, String.class));
+        
+        scheduler.addProcess(
+                new LightweightProcess(customChannelRequests) {
+                    ChannelOutPort<String> outport;
+                    
+                    @Override
+                    public ExecutionState execute() {
+                        outport.offer(testMessage);
+                        return ExecutionState.Finished;
+                    }
+
+                    @Override
+                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                        this.outport = createdChannelPorts.getChannelOutPort(channelId, String.class);
+                    }
+                });
+    }
+    
+    private void addDummyLightWeightReceiveProcessToScheduler(
+            String channelId,
+            Scheduler scheduler,
+            PortType inPortType,
+            final AtomicReference<String> output) {
+        Collection<ChannelPortsRequest<?>> customChannelRequests =
+                Arrays.asList(
+                        new ChannelPortsRequest<String>(channelId, inPortType, String.class));
+        
+        scheduler.addProcess(
+                new LightweightProcess(customChannelRequests) {
+                    ChannelInPort<String> inport;
+                    
+                    @Override
+                    public ExecutionState execute() {
+                        String result = inport.poll();
+                        
+                        if (result == null) {
+                            return ExecutionState.Waiting;
+                        } else {
+                            output.set(result);
+                            return ExecutionState.Finished;
+                        }
+                    }
+
+                    @Override
+                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                        this.inport = createdChannelPorts.getChannelInPort(channelId, String.class);
+                    }
+                });
+    }
+    
+    private void addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(
+            String channelId,
+            Scheduler scheduler,
+            PortType inPortType,
+            final AtomicReference<String> output,
+            final int maxCycles) {
+        Collection<ChannelPortsRequest<?>> customChannelRequests =
+                Arrays.asList(
+                        new ChannelPortsRequest<String>(channelId, inPortType, String.class));
+        
+        scheduler.addProcess(
+                new LightweightProcess(customChannelRequests) {
+                    ChannelInPort<String> inport;
+                    int cycles = 0;
+                    
+                    @Override
+                    public ExecutionState execute() {
+                        String result = inport.poll();
+                        this.cycles++;
+                        
+                        if ((result == null) && (this.cycles < maxCycles)) {
+                            return ExecutionState.Waiting;
+                        } else {
+                            if (result != null) {
+                                output.set(result);
+                            }
+                            return ExecutionState.Finished;
+                        }
+                    }
+
+                    @Override
+                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                        this.inport = createdChannelPorts.getChannelInPort(channelId, String.class);
+                    }
+                });
+    }
+
+    @Test
+    public void testOneToOneChannel() {
+        final String testChannelId = "test1223";
+        Scheduler scheduler = new Scheduler();
+        AtomicReference<String> output = new AtomicReference<String>("");
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.OutputExclusive);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputExclusive, output);
+                
+        scheduler.performIteration();
+        
+        assertEquals(
+                "received message was not corrent",
+                testMessage,
+                output.get());
+    }
+
+    @Test
+    public void testOneToManyMultiplexChannel() {
+        final String testChannelId = "test1223";
+        Scheduler scheduler = new Scheduler();
+        AtomicReference<String> output1 = new AtomicReference<String>("");
+        AtomicReference<String> output2 = new AtomicReference<String>("");
+        AtomicReference<String> output3 = new AtomicReference<String>("");
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.OutputExclusive);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output1);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output2);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output3);
+                
+        scheduler.performIteration();
+        
+        assertEquals(
+                "received message1 was not corrent",
+                testMessage, output1.get());
+        assertEquals(
+                "received message1 was not corrent",
+                testMessage, output2.get());
+        assertEquals(
+                "received message1 was not corrent",
+                testMessage, output3.get());
+    }
+
+    @Test
+    public void testOneToManySharedChannel() {
+        final String testChannelId = "test1223";
+        Scheduler scheduler = new Scheduler();
+        AtomicReference<String> output1 = new AtomicReference<String>("");
+        AtomicReference<String> output2 = new AtomicReference<String>("");
+        AtomicReference<String> output3 = new AtomicReference<String>("");
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.OutputExclusive);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output1, 3);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output2, 3);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output3, 3);
+                
+        scheduler.performIteration();
+        
+        assertEquals(
+                "the message was not received exactly once !",
+                testMessage, output1.get() + output2.get() + output3.get());
+    }
+}

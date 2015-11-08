@@ -1,6 +1,5 @@
 package net.matthiasauer.stwp4j;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -13,8 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.matthiasauer.stwp4j.utils.Pair;
-
 public class Scheduler {
     private static final Logger logger = LoggerFactory.getLogger(Scheduler.class);
     private static final AtomicInteger instanceCounter =
@@ -22,9 +19,8 @@ public class Scheduler {
     private final int id = instanceCounter.incrementAndGet();
     private Set<LightweightProcess> processes =
             new HashSet<LightweightProcess>();
-    private Map<String, SchedulerChannelEntry> channels =
-            new HashMap<String, SchedulerChannelEntry>();
-    private boolean newChannelsAdded = false;    
+    private Map<String, SchedulerChannel<?>> channels =
+            new HashMap<String, SchedulerChannel<?>>();
 
     public void addProcess(LightweightProcess lightweightProcess) {
         if (this.processes.contains(lightweightProcess)) {
@@ -35,16 +31,17 @@ public class Scheduler {
         logger.debug(this.id + " | added lightweightProcess to scheduler : " + lightweightProcess);;
         this.processes.add(lightweightProcess);
         
-        lightweightProcess.initialize(
-                createInputChannels(lightweightProcess),
-                createOutputChannels(lightweightProcess));
+        this.createOutputChannels(lightweightProcess);
     }
-    
-    private SchedulerChannelEntry getSchedulerChannelEntry(String channelId) {
-        SchedulerChannelEntry entry = this.channels.get(channelId);
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private SchedulerChannel<?> getSchedulerChannelEntry(String channelId, Class<?> channelType) {
+        SchedulerChannel<?> entry = this.channels.get(channelId);
         
         if (entry == null) {
-            entry = new SchedulerChannelEntry();
+            entry = new SchedulerChannel(channelId, channelType);
+            
+            logger.debug(this.id + " | created a channel : " + channelId);
             
             this.channels.put(channelId, entry);
         }
@@ -52,71 +49,41 @@ public class Scheduler {
         return entry;
     }
     
-    private Collection<Pair<String, OutChannel>> createOutputChannels(
-            LightweightProcess lightweightProcess) {
-        List<Pair<String, ChannelType>> channelRequests =
+    private void createOutputChannels(LightweightProcess lightweightProcess) {
+        List<ChannelPortsRequest<?>> channelRequests =
                 lightweightProcess.getChannelRequests();
-        Collection<Pair<String, OutChannel>> result =
-                new LinkedList<Pair<String, OutChannel>>();
+        Map<String, ChannelOutPort<?>> outputChannels =
+                new HashMap<String, ChannelOutPort<?>>();
+        Map<String, ChannelInPort<?>> inputChannels =
+                new HashMap<String, ChannelInPort<?>>();
         
-        for (Pair<String, ChannelType> request : channelRequests) {
-            final String channelId = request.first;
-            final ChannelType channelType = request.second;
+        for (ChannelPortsRequest<?> request : channelRequests) {
+            final String channelId = request.getChannelId();
+            final PortType channelPortType = request.getPortType();
+            final Class<?> channelType = request.getType();
+            SchedulerChannel<?> entry =
+                    this.getSchedulerChannelEntry(channelId, channelType);
             
-            if ((channelType == ChannelType.OutputMultiplex)
-                    || (channelType == ChannelType.OutputShared)) {
-                
-                SchedulerChannelEntry entry =
-                        this.getSchedulerChannelEntry(channelId);
-                
-                if (channelType == ChannelType.OutputMultiplex) {
-                    entry.getOutChannelMultiplex(lightweightProcess);
-                } else {
-                    entry.getOutChannelShared(lightweightProcess);
-                }
-                
-                result.add(new Pair<String, OutChannel>(null, null));
-                
-                this.newChannelsAdded = true;
+            if (channelPortType.IsInput) {
+                inputChannels.put(
+                        channelId,
+                        entry.getInChannel(lightweightProcess, channelPortType));
+            } else {
+                outputChannels.put(
+                        channelId,
+                        entry.getOutChannel(lightweightProcess, channelPortType));
             }
         }
         
-        return result;
+        lightweightProcess.initialize(
+                new ChannelPortsCreated(inputChannels, outputChannels));
     }
-
-    private Collection<Pair<String, InChannel>> createInputChannels(
-            LightweightProcess lightweightProcess) {
-        List<Pair<String, ChannelType>> channelRequests =
-                lightweightProcess.getChannelRequests();
-        Collection<Pair<String, InChannel>> result =
-                new LinkedList<Pair<String, InChannel>>();
-        
-        for (Pair<String, ChannelType> request : channelRequests) {
-            final String channelId = request.first;
-            final ChannelType channelType = request.second;
-            
-            if (channelType == ChannelType.Input) {
-                
-                SchedulerChannelEntry entry =
-                        this.getSchedulerChannelEntry(channelId);
-                
-                entry.getInChannel(lightweightProcess);
-                
-                result.add(new Pair<String, InChannel>(null, null));
-                
-                this.newChannelsAdded = true;
-            }
-        }
-        
-        return result;
-    }
-    
 
     public void performIteration() {
         Queue<LightweightProcess> queue =
                 new LinkedList<LightweightProcess>(this.processes);
         
-        for (SchedulerChannelEntry entry : this.channels.values()) {
+        for (SchedulerChannel<?> entry : this.channels.values()) {
             entry.build();
         }
         
@@ -128,7 +95,7 @@ public class Scheduler {
             ExecutionState newState = process.execute();
             
             if (newState == null) {
-                logger.error("ExecutionState 'null' of process : " + process);
+                logger.error(this.id + " | ExecutionState 'null' of process : " + process);
                 throw new IllegalStateException("returned ExecutionState was null !");
             }
             
@@ -136,7 +103,12 @@ public class Scheduler {
             if (newState != ExecutionState.Finished) {
                 // add it at the end of the queue
                 queue.add(process);
-            } 
+            }
+            
+            // forward stuff immediately... implement something better later !
+            for (SchedulerChannel<?> channel : this.channels.values()) {
+                channel.forwardMessages();
+            }
         }
     }
 }

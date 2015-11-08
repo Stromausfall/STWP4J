@@ -5,22 +5,20 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import net.matthiasauer.stwp4j.utils.Pair;
-
 public abstract class LightweightProcess {
-    private final List<Pair<String, ChannelType>> channelRequests;
+    private final List<ChannelPortsRequest<?>> channelRequests;
     
-    protected LightweightProcess(Collection<Pair<String, ChannelType>> channelRequests) {
+    protected LightweightProcess(Collection<ChannelPortsRequest<?>> channelRequests) {
         this.channelRequests =
                 Collections.unmodifiableList(
-                        new LinkedList<Pair<String, ChannelType>>(channelRequests));
+                        new LinkedList<ChannelPortsRequest<?>>(channelRequests));
     }
     
-    List<Pair<String, ChannelType>> getChannelRequests() {
+    List<ChannelPortsRequest<?>> getChannelRequests() {
         return this.channelRequests;
     }
     
     public abstract ExecutionState execute();
 
-    public abstract void initialize(Collection<Pair<String, InChannel>> inputChannels, Collection<Pair<String, OutChannel>> outputChannels);
+    public abstract void initialize(ChannelPortsCreated createdChannelPorts);
 }
