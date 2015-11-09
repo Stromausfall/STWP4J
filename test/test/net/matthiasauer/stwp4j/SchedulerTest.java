@@ -17,6 +17,7 @@ import net.matthiasauer.stwp4j.ExecutionState;
 import net.matthiasauer.stwp4j.LightweightProcess;
 import net.matthiasauer.stwp4j.PortType;
 import net.matthiasauer.stwp4j.Scheduler;
+import test.net.matthiasauer.stwp4j.TestUtils.TestUtilsExecutable;
 
 public class SchedulerTest {
     private Collection<ChannelPortsRequest<?>> testChannelRequests;
@@ -28,7 +29,7 @@ public class SchedulerTest {
                         new ChannelPortsRequest<String>("foo", PortType.Output, String.class));
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSchedulerAddProcessNoDuplicates() {
         Scheduler scheduler = new Scheduler();
         LightweightProcess lightweightProcess =
@@ -43,7 +44,14 @@ public class SchedulerTest {
                 };
         
         scheduler.addProcess(lightweightProcess);
-        scheduler.addProcess(lightweightProcess);
+        
+        TestUtils.expectInterruptedExceptionToContain(
+                new TestUtilsExecutable() {
+                    public void execute() {
+                        scheduler.addProcess(lightweightProcess);
+                    }
+                },
+                "process already added to the scheduler");
     }
     
     private LightweightProcess createTestProcess(AtomicReference<String> data, final int upTo) {

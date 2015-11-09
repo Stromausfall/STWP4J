@@ -21,11 +21,15 @@ public class Scheduler {
             new HashSet<LightweightProcess>();
     private Map<String, SchedulerChannel<?>> channels =
             new HashMap<String, SchedulerChannel<?>>();
+    
+    private void throwError(String message) {
+        logger.error(message);
+        throw new IllegalArgumentException(message);
+    }
 
     public void addProcess(LightweightProcess lightweightProcess) {
         if (this.processes.contains(lightweightProcess)) {
-            logger.error(this.id + " | already contained the lightweightProcess : " + lightweightProcess);
-            throw new IllegalArgumentException("already contained the lightweight process");
+            throwError(this.id + " | process already added to the scheduler, process : " + lightweightProcess);
         }
 
         logger.debug(this.id + " | added lightweightProcess to scheduler : " + lightweightProcess);;

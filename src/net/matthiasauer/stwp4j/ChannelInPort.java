@@ -10,12 +10,6 @@ public class ChannelInPort<T> extends ChannelPort<T> {
     }
 
     public T poll() {
-        T xxx = this.messages.poll();
-        
-        System.err.println(xxx+ " - " + this.messages.hashCode());
-        
-        return xxx;
-        
-        //return this.messages.poll();
+        return this.messages.poll();
     }
 }

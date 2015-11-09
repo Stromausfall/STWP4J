@@ -125,7 +125,9 @@ public class SchedulerChannelTest {
             String channelId,
             Scheduler scheduler,
             PortType inPortType,
-            final AtomicReference<String> output) {
+            final AtomicReference<String> output,
+            final int messagesToExpect,
+            final int maxCycles) {
         Collection<ChannelPortsRequest<?>> customChannelRequests =
                 Arrays.asList(
                         new ChannelPortsRequest<String>(channelId, inPortType, String.class));
@@ -133,16 +135,24 @@ public class SchedulerChannelTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     ChannelInPort<String> inport;
+                    int receivedMessages = 0;
+                    int currentCycles = 0;
                     
                     @Override
                     public ExecutionState execute() {
                         String result = inport.poll();
+                        this.currentCycles++;
                         
-                        if (result == null) {
-                            return ExecutionState.Waiting;
-                        } else {
-                            output.set(result);
+                        if (result != null) {
+                            output.set(output.get() + result);
+                            this.receivedMessages++;
+                        }
+                        
+                        if ((this.receivedMessages >= messagesToExpect)
+                                || (this.currentCycles >= maxCycles)) {
                             return ExecutionState.Finished;
+                        } else {
+                            return ExecutionState.Waiting;
                         }
                     }
 
@@ -173,12 +183,13 @@ public class SchedulerChannelTest {
                         String result = inport.poll();
                         this.cycles++;
                         
-                        if ((result == null) && (this.cycles < maxCycles)) {
+                        if (result != null) {
+                            output.set(output.get() + result);
+                        }
+                        
+                        if (this.cycles < maxCycles) {
                             return ExecutionState.Waiting;
                         } else {
-                            if (result != null) {
-                                output.set(result);
-                            }
                             return ExecutionState.Finished;
                         }
                     }
@@ -196,7 +207,7 @@ public class SchedulerChannelTest {
         Scheduler scheduler = new Scheduler();
         AtomicReference<String> output = new AtomicReference<String>("");
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.OutputExclusive);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputExclusive, output);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputExclusive, output, 1, 5);
                 
         scheduler.performIteration();
         
@@ -214,9 +225,9 @@ public class SchedulerChannelTest {
         AtomicReference<String> output2 = new AtomicReference<String>("");
         AtomicReference<String> output3 = new AtomicReference<String>("");
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.OutputExclusive);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output1);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output2);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output3);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output1, 1, 5);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output2, 1, 5);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output3, 1, 5);
                 
         scheduler.performIteration();
         
@@ -248,5 +259,69 @@ public class SchedulerChannelTest {
         assertEquals(
                 "the message was not received exactly once !",
                 testMessage, output1.get() + output2.get() + output3.get());
+    }
+
+    @Test
+    public void testManyToOneChannel() {
+        final String testChannelId = "test1223";
+        Scheduler scheduler = new Scheduler();
+        AtomicReference<String> output = new AtomicReference<String>("");
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputExclusive, output, 3, 5);
+                
+        scheduler.performIteration();
+        
+        assertEquals(
+                "received message was not corrent",
+                testMessage + testMessage + testMessage,
+                output.get());
+    }
+
+    @Test
+    public void testManyToManySharedChannel() {
+        final String testChannelId = "test1223";
+        Scheduler scheduler = new Scheduler();
+        AtomicReference<String> output1 = new AtomicReference<String>("");
+        AtomicReference<String> output2 = new AtomicReference<String>("");
+        AtomicReference<String> output3 = new AtomicReference<String>("");
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output1, 3);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output2, 3);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output3, 3);
+                
+        scheduler.performIteration();
+        
+        assertEquals(
+                "the message was not received exactly twice !",
+                testMessage + testMessage, output1.get() + output2.get() + output3.get());
+    }
+
+    @Test
+    public void testManyToManyMultiplexChannel() {
+        final String testChannelId = "test1223";
+        Scheduler scheduler = new Scheduler();
+        AtomicReference<String> output1 = new AtomicReference<String>("");
+        AtomicReference<String> output2 = new AtomicReference<String>("");
+        AtomicReference<String> output3 = new AtomicReference<String>("");
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
+        addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output1, 2, 5);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output2, 2, 5);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output3, 2, 5);
+                
+        scheduler.performIteration();
+        
+        assertEquals(
+                "received message1 was not corrent",
+                testMessage + testMessage, output1.get());
+        assertEquals(
+                "received message1 was not corrent",
+                testMessage + testMessage, output2.get());
+        assertEquals(
+                "received message1 was not corrent",
+                testMessage + testMessage, output3.get());
     }
 }

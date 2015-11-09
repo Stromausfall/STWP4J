@@ -123,11 +123,11 @@ class SchedulerChannel<T> {
 
     public void forwardMessages() {
         if (!this.inChannels.isEmpty() && !this.outChannels.isEmpty()) {
-            ChannelOutPort<T> outPort = this.outChannels.keySet().iterator().next();
-            
-            // get the messages
+            // get all messages
             Queue<T> messages = new LinkedBlockingQueue<T>();
-            outPort.messages.drainTo(messages);      
+            for (ChannelOutPort<T> outPort : this.outChannels.keySet()) {
+                outPort.drainTo(messages);
+            }      
             
             // distribute the messages
             if (this.type.InPort == PortType.InputMultiplex) {
