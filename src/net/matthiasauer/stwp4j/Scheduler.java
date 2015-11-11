@@ -86,7 +86,9 @@ public class Scheduler {
     public void performIteration() {
         Queue<LightweightProcess> queue =
                 new LinkedList<LightweightProcess>(this.processes);
-        
+        Queue<LightweightProcess> queue2 =
+                new LinkedList<LightweightProcess>();
+        // make sure all channels are built
         for (SchedulerChannel<?> entry : this.channels.values()) {
             entry.build();
         }
@@ -106,12 +108,20 @@ public class Scheduler {
             // if the state is not finished execute it again !
             if (newState != ExecutionState.Finished) {
                 // add it at the end of the queue
-                queue.add(process);
+                queue2.add(process);
             }
             
-            // forward stuff immediately... implement something better later !
-            for (SchedulerChannel<?> channel : this.channels.values()) {
-                channel.forwardMessages();
+            if (queue.isEmpty()) {
+                // forward stuff immediately... implement something better later !
+                for (SchedulerChannel<?> channel : this.channels.values()) {
+                    channel.forwardMessages();
+                }
+                
+                // change the channels
+                Queue<LightweightProcess> temp = queue;
+                
+                queue = queue2;
+                queue2 = temp;
             }
         }
     }

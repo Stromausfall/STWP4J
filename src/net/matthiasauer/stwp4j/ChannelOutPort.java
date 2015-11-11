@@ -11,7 +11,7 @@ public class ChannelOutPort<T> extends ChannelPort<T> {
         return this.messages.offer(message);
     }
 
-    public void drainTo(Queue<T> toDrainTo) {
+    void drainTo(Queue<T> toDrainTo) {
         this.messages.drainTo(toDrainTo);
     }
 }

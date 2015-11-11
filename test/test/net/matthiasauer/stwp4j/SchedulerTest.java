@@ -11,6 +11,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
 
+import net.matthiasauer.stwp4j.ChannelInPort;
+import net.matthiasauer.stwp4j.ChannelOutPort;
 import net.matthiasauer.stwp4j.ChannelPortsCreated;
 import net.matthiasauer.stwp4j.ChannelPortsRequest;
 import net.matthiasauer.stwp4j.ExecutionState;
@@ -176,5 +178,97 @@ public class SchedulerTest {
                                 createdChannelPorts.getChannelInPorts().size());
                     }
                 });
+    }
+    
+    private LightweightProcess createProducer(final String channelName, final int elementsToProduceInIteration) {
+        return new LightweightProcess(
+                Arrays.asList(new ChannelPortsRequest<String>(channelName, PortType.Output, String.class))) {
+            int current = 0;
+            ChannelOutPort<String> outPort;
+            
+            @Override
+            public void initialize(ChannelPortsCreated createdChannelPorts) {
+                this.outPort = createdChannelPorts.getChannelOutPort(channelName, String.class);
+            }
+            
+            @Override
+            public ExecutionState execute() {
+                this.current++;
+                
+                this.outPort.offer(this.current + "");
+                
+                if (this.current < elementsToProduceInIteration) {
+                    return ExecutionState.Waiting;
+                } else {
+                    return ExecutionState.Finished;
+                }
+            }
+        };
+    }
+    
+    private void expectedChannelIn(ChannelInPort<String> inPort, String ... expected) {
+        for (String element : expected) {
+            assertEquals("output not as expected", element, inPort.poll());
+        }
+        assertEquals("after expected we expect to get null", null, inPort.poll());
+    }
+
+    @Test
+    public void testChannelsForwardOnlyAfterEachTaskHasBeenCalled() {
+        final String channelName = "foo foo fo :)";
+        Scheduler scheduler = new Scheduler();
+        scheduler.addProcess(this.createProducer(channelName, 5));
+        scheduler.addProcess(this.createProducer(channelName, 5));
+        scheduler.addProcess(this.createProducer(channelName, 4));
+        scheduler.addProcess(
+                new LightweightProcess(
+                        Arrays.asList(
+                                new ChannelPortsRequest<String>(
+                                        channelName,
+                                        PortType.InputExclusive,
+                                        String.class)
+                                )) {
+                    ChannelInPort<String> inPort;
+                    int counter = 0;
+                    
+                    @Override
+                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                        this.inPort = createdChannelPorts.getChannelInPort(channelName, String.class);
+                    }
+                    
+                    @Override
+                    public ExecutionState execute() {
+                        this.counter++;
+                        switch (counter) {
+                        case 1:
+                            expectedChannelIn(inPort);
+                            break;
+                        case 2:
+                            expectedChannelIn(inPort, "1", "1", "1");
+                            break;
+                        case 3:
+                            expectedChannelIn(inPort, "2", "2", "2");
+                            break;
+                        case 4:
+                            expectedChannelIn(inPort, "3", "3", "3");
+                            break;
+                        case 5:
+                            expectedChannelIn(inPort, "4", "4", "4");
+                            break;
+                        case 6:
+                            expectedChannelIn(inPort, "5", "5");
+                            break;
+                        case 7:
+                            expectedChannelIn(inPort);
+                            break;
+                        default:
+                            return ExecutionState.Finished;
+                        }
+                        
+                        return ExecutionState.Waiting;
+                    }
+                });
+        
+        scheduler.performIteration();
     }
 }

@@ -38,6 +38,11 @@ class SchedulerChannel<T> {
     }
 
     public void build() {
+        if (this.type != ChannelType.Invalid) {
+            // nothing to do - we already determined the type
+            return;
+        }
+        
         PortType inType = null;
         PortType outType = null;
         
