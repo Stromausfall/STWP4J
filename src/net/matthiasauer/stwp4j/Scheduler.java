@@ -93,6 +93,8 @@ public class Scheduler {
             entry.build();
         }
         
+        boolean allRemainingProcessesAreWaiting = true;
+        
         while (!queue.isEmpty()) {
             // get process
             LightweightProcess process = queue.poll();
@@ -111,7 +113,17 @@ public class Scheduler {
                 queue2.add(process);
             }
             
-            if (queue.isEmpty()) {
+            allRemainingProcessesAreWaiting =
+                    allRemainingProcessesAreWaiting
+                    && (newState == ExecutionState.Waiting);
+            
+            if (queue.isEmpty()) {                
+                if (allRemainingProcessesAreWaiting) {
+                    // all remaining processes are waiting - the iteration has 
+                    // therefore finished !
+                    break;
+                }
+                
                 // forward stuff immediately... implement something better later !
                 for (SchedulerChannel<?> channel : this.channels.values()) {
                     channel.forwardMessages();
@@ -122,6 +134,10 @@ public class Scheduler {
                 
                 queue = queue2;
                 queue2 = temp;
+                
+                // reset the variable that determines whether all proceses
+                // are waiting (and therefore the iteration should finish)
+                allRemainingProcessesAreWaiting = true;
             }
         }
     }

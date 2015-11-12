@@ -152,7 +152,7 @@ public class SchedulerChannelTest {
                                 || (this.currentCycles >= maxCycles)) {
                             return ExecutionState.Finished;
                         } else {
-                            return ExecutionState.Waiting;
+                            return ExecutionState.Working;
                         }
                     }
 
