@@ -1,6 +1,6 @@
 package net.matthiasauer.stwp4j;
 
-public class ChannelPortsRequest<T> {
+public final class ChannelPortsRequest<T> {
     private final String channelId;
     private final PortType portType;
     private final Class<T> type;

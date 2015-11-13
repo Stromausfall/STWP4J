@@ -6,7 +6,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ChannelPortsCreated {
+public final class ChannelPortsCreated {
     private static final Logger logger = LoggerFactory.getLogger(ChannelPortsCreated.class);
     private final Map<String, ChannelInPort<?>> inputChannels;
     private final Map<String, ChannelOutPort<?>> outputChannels;

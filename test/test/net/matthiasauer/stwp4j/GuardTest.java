@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -19,6 +20,24 @@ import net.matthiasauer.stwp4j.PortType;
 import net.matthiasauer.stwp4j.Scheduler;
 
 public class GuardTest {
+    
+    @Test
+    public void testGuardConstructorNull() {
+        boolean exceptionThrown = false;
+        
+        try {
+            new Guard(null);
+        } catch(IllegalArgumentException e) {
+            assertTrue(
+                    "thrown exception is not correct",
+                    e.getMessage().contains("passed inPorts can't be null !"));
+            exceptionThrown = true;
+        }
+        
+        assertTrue(
+                "no exception thrown !",
+                exceptionThrown);
+    }
 
     @Test
     public void testGuardReturnsIfAllAreAvailable() {
@@ -92,7 +111,7 @@ public class GuardTest {
                     public ExecutionState execute() {
                         this.counter++;
 
-                        ArrayList<Object> result = this.guard.poll();
+                        List<Object> result = this.guard.poll();
                         
                         switch (this.counter) {
                         case 1:

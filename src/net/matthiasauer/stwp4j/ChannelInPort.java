@@ -1,6 +1,6 @@
 package net.matthiasauer.stwp4j;
 
-public class ChannelInPort<T> extends ChannelPort<T> {
+public final class ChannelInPort<T> extends ChannelPort<T> {
     public ChannelInPort(Class<T> channelType) {
         super(channelType);
     }
@@ -12,4 +12,8 @@ public class ChannelInPort<T> extends ChannelPort<T> {
     public T poll() {
         return this.messages.poll();
     }
+    
+    T peek() {
+        return this.messages.peek();
+    }   
 }
