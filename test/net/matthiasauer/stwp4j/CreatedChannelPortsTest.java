@@ -1,6 +1,5 @@
-package test.net.matthiasauer.stwp4j;
+package net.matthiasauer.stwp4j;
 
-import java.util.Arrays;
 import java.util.Collection;
 
 import org.junit.Assert;
@@ -19,7 +18,7 @@ public class CreatedChannelPortsTest {
     public void testGetPorts() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.Output, String.class),
                         new ChannelPortsRequest<String>("foo2", PortType.InputExclusive, String.class),
                         new ChannelPortsRequest<String>("foo3", PortType.InputMultiplex, String.class),
@@ -58,7 +57,7 @@ public class CreatedChannelPortsTest {
     public void testGetChannelOutPortIncorrectIdentifier() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.Output, String.class));
 
         scheduler.addProcess(
@@ -79,7 +78,7 @@ public class CreatedChannelPortsTest {
     public void testGetChannelInPortIncorrectIdentifier() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.InputExclusive, String.class));
 
         scheduler.addProcess(
@@ -100,7 +99,7 @@ public class CreatedChannelPortsTest {
     public void testGetChannelOutPortIncorrectType() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.Output, String.class));
 
         scheduler.addProcess(
@@ -121,7 +120,7 @@ public class CreatedChannelPortsTest {
     public void testGetChannelInPortIncorrectType() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.InputExclusive, String.class));
 
         scheduler.addProcess(

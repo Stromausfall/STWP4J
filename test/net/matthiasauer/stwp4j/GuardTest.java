@@ -1,10 +1,10 @@
-package test.net.matthiasauer.stwp4j;
+package net.matthiasauer.stwp4j;
 
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
@@ -22,15 +22,33 @@ import net.matthiasauer.stwp4j.Scheduler;
 public class GuardTest {
     
     @Test
-    public void testGuardConstructorNull() {
+    public void testGuardConstructorEmpty() {
         boolean exceptionThrown = false;
         
         try {
-            new Guard(null);
+            new Guard();
         } catch(IllegalArgumentException e) {
             assertTrue(
-                    "thrown exception is not correct",
-                    e.getMessage().contains("passed inPorts can't be null !"));
+                    "thrown exception is not correct, was : " + e.getMessage(),
+                    e.getMessage().contains("passed inPorts can't be empty !"));
+            exceptionThrown = true;
+        }
+        
+        assertTrue(
+                "no exception thrown !",
+                exceptionThrown);
+    }
+    
+    @Test
+    public void testGuardConstructorEmptyList() {
+        boolean exceptionThrown = false;
+        
+        try {
+            new Guard(new LinkedList<ChannelInPort<?>>());
+        } catch(IllegalArgumentException e) {
+            assertTrue(
+                    "thrown exception is not correct, was : " + e.getMessage(),
+                    e.getMessage().contains("passed inPorts can't be empty !"));
             exceptionThrown = true;
         }
         
@@ -104,7 +122,7 @@ public class GuardTest {
                         this.channel1 = createdChannelPorts.getChannelInPort("id#1", String.class);
                         this.channel2 = createdChannelPorts.getChannelInPort("id#2", Integer.class);
                         this.channel3 = createdChannelPorts.getChannelInPort("id#3", Double.class);
-                        this.guard = new Guard(Arrays.asList(this.channel1, this.channel2, this.channel3));
+                        this.guard = new Guard(this.channel1, this.channel2, this.channel3);
                     }
                     
                     @Override

@@ -1,11 +1,11 @@
-package test.net.matthiasauer.stwp4j;
+package net.matthiasauer.stwp4j;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
@@ -19,7 +19,7 @@ import net.matthiasauer.stwp4j.ExecutionState;
 import net.matthiasauer.stwp4j.LightweightProcess;
 import net.matthiasauer.stwp4j.PortType;
 import net.matthiasauer.stwp4j.Scheduler;
-import test.net.matthiasauer.stwp4j.TestUtils.TestUtilsExecutable;
+import net.matthiasauer.stwp4j.TestUtils.TestUtilsExecutable;
 
 public class SchedulerTest {
     private Collection<ChannelPortsRequest<?>> testChannelRequests;
@@ -27,14 +27,14 @@ public class SchedulerTest {
     @Before
     public void setUp() throws Exception {
         this.testChannelRequests =
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo", PortType.Output, String.class));
     }
     
     @Test
     public void testSchedulerAddProcessNoDuplicates() {
-        Scheduler scheduler = new Scheduler();
-        LightweightProcess lightweightProcess =
+        final Scheduler scheduler = new Scheduler();
+        final LightweightProcess lightweightProcess =
                 new LightweightProcess(testChannelRequests) {
                     public ExecutionState execute() {
                         return ExecutionState.Finished;
@@ -56,7 +56,7 @@ public class SchedulerTest {
                 "process already added to the scheduler");
     }
     
-    private LightweightProcess createTestProcess(AtomicReference<String> data, final int upTo) {
+    private LightweightProcess createTestProcess(final AtomicReference<String> data, final int upTo) {
         return
                 new LightweightProcess(testChannelRequests) {
                     int counter = 0;
@@ -128,7 +128,7 @@ public class SchedulerTest {
 
     @Test
     public void testAddProcessCallsInitializeMethod() {
-        AtomicBoolean initializeMethodCalled =
+        final AtomicBoolean initializeMethodCalled =
                 new AtomicBoolean(false);
         Scheduler scheduler = new Scheduler();
         scheduler.addProcess(
@@ -153,7 +153,7 @@ public class SchedulerTest {
     public void testAddProcessCallsInitializeMethodAndChannelsAreCreated() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests =
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.Output, String.class),
                         new ChannelPortsRequest<String>("foo2", PortType.Output, String.class),
                         new ChannelPortsRequest<String>("foo3", PortType.InputMultiplex, String.class),
@@ -182,7 +182,7 @@ public class SchedulerTest {
     
     private LightweightProcess createProducer(final String channelName, final int elementsToProduceInIteration) {
         return new LightweightProcess(
-                Arrays.asList(new ChannelPortsRequest<String>(channelName, PortType.Output, String.class))) {
+                TestUtils.asList(new ChannelPortsRequest<String>(channelName, PortType.Output, String.class))) {
             int current = 0;
             ChannelOutPort<String> outPort;
             
@@ -222,7 +222,7 @@ public class SchedulerTest {
         scheduler.addProcess(this.createProducer(channelName, 4));
         scheduler.addProcess(
                 new LightweightProcess(
-                        Arrays.asList(
+                        TestUtils.asList(
                                 new ChannelPortsRequest<String>(
                                         channelName,
                                         PortType.InputExclusive,
@@ -329,6 +329,100 @@ public class SchedulerTest {
                 "execution states behavior regarding performIteration() is NOT correct !",
                 "123",
                 data.get());
+    }
+
+    @Test
+    public void testSchedulerCallsPreAndPostIterationMethods() {
+        final AtomicReference<String> data = new AtomicReference<String>("");
+        final AtomicInteger preIteration = new AtomicInteger();
+        final AtomicInteger postIteration = new AtomicInteger();
+        Scheduler scheduler = new Scheduler();
+        // this thread is used to keep the whole thing alive for 4 sub iterations
+        scheduler.addProcess(
+                new LightweightProcess(testChannelRequests) {
+                    int counter = 0;
+                    
+                    @Override
+                    void preIteration() {
+                        preIteration.incrementAndGet();
+                    }
+                    
+                    @Override
+                    void postIteration() {
+                        postIteration.incrementAndGet();
+                    }
+                    
+                    @Override
+                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                    }
+                    
+                    @Override
+                    public ExecutionState execute() {
+                        this.counter++;
+
+                        assertTrue(
+                                "the pre iteration method should be called and the post iteration method should not be called by now !",
+                                (preIteration.get() == 2) && (postIteration.get() == 0));
+                        
+                        
+                        if (this.counter <= 4) {
+                            return ExecutionState.Working;
+                        } else {
+                            return ExecutionState.Finished;
+                        }
+                    }
+                });
+        scheduler.addProcess(
+                new LightweightProcess(testChannelRequests) {
+                    int counter = 0;
+                    
+                    @Override
+                    void preIteration() {
+                        preIteration.incrementAndGet();
+                    }
+                    
+                    @Override
+                    void postIteration() {
+                        postIteration.incrementAndGet();
+                    }
+                    
+                    @Override
+                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                    }
+                    
+                    @Override
+                    public ExecutionState execute() {
+                        this.counter++;
+                        data.set(data.get()+this.counter);
+                        
+                        assertTrue(
+                                "the pre iteration method should be called and the post iteration method should not be called by now !",
+                                (preIteration.get() == 2) && (postIteration.get() == 0));
+                        
+                        switch (this.counter) {
+                        case 1:
+                            return ExecutionState.Waiting;
+                        case 2:
+                            return ExecutionState.Working;
+                        case 3:
+                            return ExecutionState.Finished;
+                        default:
+                            break;
+                        }
+                        
+                        return null;
+                    }
+                });
+        
+        assertTrue(
+                "the pre and post iteration methods should not have been called by now",
+                (preIteration.get() == 0) && (postIteration.get() == 0));
+
+        scheduler.performIteration();
+        
+        assertTrue(
+                "the pre and post iteration methods have been called by now",
+                (preIteration.get() == 2) && (postIteration.get() == 2));
     }
 
     @Test

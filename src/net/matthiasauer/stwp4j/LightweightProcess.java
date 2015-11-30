@@ -18,7 +18,13 @@ public abstract class LightweightProcess {
         return this.channelRequests;
     }
     
-    public abstract ExecutionState execute();
+    abstract ExecutionState execute();
 
-    public abstract void initialize(ChannelPortsCreated createdChannelPorts);
+    abstract void initialize(ChannelPortsCreated createdChannelPorts);
+    
+    void preIteration() {
+    }
+    
+    void postIteration() {
+    }
 }

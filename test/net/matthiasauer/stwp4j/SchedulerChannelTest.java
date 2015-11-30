@@ -1,8 +1,7 @@
-package test.net.matthiasauer.stwp4j;
+package net.matthiasauer.stwp4j;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -38,13 +37,13 @@ public class SchedulerChannelTest {
     public void testIncorrectOutputSharedAndMultiplex() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests1=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.Output, String.class));
         Collection<ChannelPortsRequest<?>> customChannelRequests2=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.InputMultiplex, String.class));
         Collection<ChannelPortsRequest<?>> customChannelRequests3=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.InputShared, String.class));
         
         this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests1);
@@ -58,13 +57,13 @@ public class SchedulerChannelTest {
     public void testIncorrectOutputSharedAndExclusive() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests1=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.Output, String.class));
         Collection<ChannelPortsRequest<?>> customChannelRequests2=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.InputExclusive, String.class));
         Collection<ChannelPortsRequest<?>> customChannelRequests3=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.InputShared, String.class));
 
         this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests1);
@@ -78,13 +77,13 @@ public class SchedulerChannelTest {
     public void testIncorrectInputIncludingExclusive() {
         Scheduler scheduler = new Scheduler();
         Collection<ChannelPortsRequest<?>> customChannelRequests1=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.Output, String.class));
         Collection<ChannelPortsRequest<?>> customChannelRequests2=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.OutputExclusive, String.class));
         Collection<ChannelPortsRequest<?>> customChannelRequests3=
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>("foo1", PortType.InputShared, String.class));
 
         this.addDummyLightWeightProcessToScheduler(scheduler, customChannelRequests1);
@@ -97,11 +96,11 @@ public class SchedulerChannelTest {
     private final String testMessage = "Hello World !";
     
     private void addDummyLightWeightSendProcessToScheduler(
-            String channelId,
+            final String channelId,
             Scheduler scheduler,
             PortType outPortType) {
         Collection<ChannelPortsRequest<?>> customChannelRequests =
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>(channelId, outPortType, String.class));
         
         scheduler.addProcess(
@@ -122,14 +121,14 @@ public class SchedulerChannelTest {
     }
     
     private void addDummyLightWeightReceiveProcessToScheduler(
-            String channelId,
+            final String channelId,
             Scheduler scheduler,
             PortType inPortType,
             final AtomicReference<String> output,
             final int messagesToExpect,
             final int maxCycles) {
         Collection<ChannelPortsRequest<?>> customChannelRequests =
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>(channelId, inPortType, String.class));
         
         scheduler.addProcess(
@@ -164,13 +163,13 @@ public class SchedulerChannelTest {
     }
     
     private void addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(
-            String channelId,
+            final String channelId,
             Scheduler scheduler,
             PortType inPortType,
             final AtomicReference<String> output,
             final int maxCycles) {
         Collection<ChannelPortsRequest<?>> customChannelRequests =
-                Arrays.asList(
+                TestUtils.asList(
                         new ChannelPortsRequest<String>(channelId, inPortType, String.class));
         
         scheduler.addProcess(

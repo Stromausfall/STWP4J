@@ -1,17 +1,35 @@
 package net.matthiasauer.stwp4j;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Guard {
     private final List<ChannelInPort<?>> inPorts;
 
-    public Guard(List<ChannelInPort<?>> inPorts) {
-        if (inPorts == null) {
-            throw new IllegalArgumentException("passed inPorts can't be null !");
+    public Guard(Collection<ChannelInPort<?>> inPorts) {
+        if (inPorts.isEmpty()) {
+            throw new IllegalArgumentException("passed inPorts can't be empty !");
         }
         
-        this.inPorts = inPorts;
+        this.inPorts =
+                new LinkedList<ChannelInPort<?>>(inPorts);
+    }
+
+    public Guard(ChannelInPort<?> ... inPorts) {
+        if (inPorts.length == 0) {
+            throw new IllegalArgumentException("passed inPorts can't be empty !");
+        }
+        
+        List<ChannelInPort<?>> list =
+                new LinkedList<ChannelInPort<?>>();
+        
+        for (ChannelInPort<?> inPort : inPorts) {
+            list.add(inPort);
+        }
+        
+        this.inPorts = list;
     }
     
     private boolean allAreReady() {

@@ -95,6 +95,11 @@ public class Scheduler {
         
         boolean allRemainingProcessesAreWaiting = true;
         
+        // execute all preIteration methods
+        for (LightweightProcess process : this.processes) {
+            process.preIteration();
+        }
+        
         while (!queue.isEmpty()) {
             // get process
             LightweightProcess process = queue.poll();
@@ -139,6 +144,11 @@ public class Scheduler {
                 // are waiting (and therefore the iteration should finish)
                 allRemainingProcessesAreWaiting = true;
             }
+        }
+        
+        // execute all postIteration methods
+        for (LightweightProcess process : this.processes) {
+            process.postIteration();
         }
     }
 }
