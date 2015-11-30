@@ -14,6 +14,21 @@ public abstract class LightweightProcess {
                         new LinkedList<ChannelPortsRequest<?>>(channelRequests));
     }
     
+    private static Collection<ChannelPortsRequest<?>> convert(ChannelPortsRequest<?> ... elements) {
+        Collection<ChannelPortsRequest<?>> list =
+                new LinkedList<ChannelPortsRequest<?>>();
+        
+        for (ChannelPortsRequest<?> element : elements) {
+            list.add(element);
+        }
+        
+        return list;
+    }
+    
+    protected LightweightProcess(ChannelPortsRequest<?> ... channelRequests) {
+        this(convert(channelRequests));
+    }
+    
     final List<ChannelPortsRequest<?>> getChannelRequests() {
         return this.channelRequests;
     }
