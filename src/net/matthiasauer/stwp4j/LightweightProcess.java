@@ -14,17 +14,17 @@ public abstract class LightweightProcess {
                         new LinkedList<ChannelPortsRequest<?>>(channelRequests));
     }
     
-    List<ChannelPortsRequest<?>> getChannelRequests() {
+    final List<ChannelPortsRequest<?>> getChannelRequests() {
         return this.channelRequests;
     }
     
-    abstract ExecutionState execute();
+    protected abstract ExecutionState execute();
 
-    abstract void initialize(ChannelPortsCreated createdChannelPorts);
+    protected abstract void initialize(ChannelPortsCreated createdChannelPorts);
     
-    void preIteration() {
+    protected void preIteration() {
     }
     
-    void postIteration() {
+    protected void postIteration() {
     }
 }

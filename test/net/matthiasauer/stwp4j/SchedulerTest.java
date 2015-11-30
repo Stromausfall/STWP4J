@@ -343,21 +343,21 @@ public class SchedulerTest {
                     int counter = 0;
                     
                     @Override
-                    void preIteration() {
+                    protected void preIteration() {
                         preIteration.incrementAndGet();
                     }
                     
                     @Override
-                    void postIteration() {
+                    protected void postIteration() {
                         postIteration.incrementAndGet();
                     }
                     
                     @Override
-                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                    protected void initialize(ChannelPortsCreated createdChannelPorts) {
                     }
                     
                     @Override
-                    public ExecutionState execute() {
+                    protected ExecutionState execute() {
                         this.counter++;
 
                         assertTrue(
@@ -377,21 +377,21 @@ public class SchedulerTest {
                     int counter = 0;
                     
                     @Override
-                    void preIteration() {
+                    protected void preIteration() {
                         preIteration.incrementAndGet();
                     }
                     
                     @Override
-                    void postIteration() {
+                    protected void postIteration() {
                         postIteration.incrementAndGet();
                     }
                     
                     @Override
-                    public void initialize(ChannelPortsCreated createdChannelPorts) {
+                    protected void initialize(ChannelPortsCreated createdChannelPorts) {
                     }
                     
                     @Override
-                    public ExecutionState execute() {
+                    protected ExecutionState execute() {
                         this.counter++;
                         data.set(data.get()+this.counter);
                         
