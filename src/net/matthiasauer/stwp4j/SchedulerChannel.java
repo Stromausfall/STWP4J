@@ -12,7 +12,7 @@ import net.matthiasauer.stwp4j.utils.Pair;
 
 class SchedulerChannel<T> {
     private static final Logger logger = LoggerFactory.getLogger(SchedulerChannel.class);
-    private ChannelType type = ChannelType.Invalid;
+    private ChannelType type = null;
     
     private final Map<ChannelInPort<T>, Pair<LightweightProcess, PortType>> inChannels =
             new HashMap<ChannelInPort<T>, Pair<LightweightProcess, PortType>>();
@@ -27,8 +27,9 @@ class SchedulerChannel<T> {
     }
     
     private void throwError(String message) {
-        String errorMessage = "channel : " + this.id + " | " + message; 
-        logger.error(errorMessage);
+        this.errorMessage(message);
+        
+        String errorMessage = "channel : " + this.id + " | " + message;
         throw new IllegalStateException(errorMessage);
     }
     
@@ -36,9 +37,14 @@ class SchedulerChannel<T> {
         String errorMessage = "channel : " + this.id + " | " + message; 
         logger.debug(errorMessage);
     }
+    
+    private void errorMessage(String message) {
+        String errorMessage = "channel : " + this.id + " | " + message; 
+        logger.error(errorMessage);
+    }
 
     public void build() {
-        if (this.type != ChannelType.Invalid) {
+        if ((this.type != ChannelType.Invalid) && (this.type != null)) {
             // nothing to do - we already determined the type
             return;
         }
@@ -88,12 +94,15 @@ class SchedulerChannel<T> {
         }
 
         if (this.type == null) {
-            throwError("unknown channel for InPort type : " + inType + " and OutPort type : " + outType);
+            this.errorMessage("unknown channel for InPort type : " + inType + " and OutPort type : " + outType + " (messages can not be sent and not received!)");
+            this.type = ChannelType.Invalid;
         }
         
-        this.debugMessage(
-                "Channel has type : " + this.type + " with " + this.inChannels.size()
-                + " input ports and " + this.outChannels.size() + " output ports");
+        if (this.type != ChannelType.Invalid) {
+            this.debugMessage(
+                    "Channel has type : " + this.type + " with " + this.inChannels.size()
+                    + " input ports and " + this.outChannels.size() + " output ports");
+        }
     }
 
     public ChannelOutPort<T> getOutChannel(LightweightProcess lightweightProcess, PortType outPortType) {
