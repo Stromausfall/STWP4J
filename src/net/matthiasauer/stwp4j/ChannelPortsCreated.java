@@ -2,12 +2,10 @@ package net.matthiasauer.stwp4j;
 
 import java.util.Collections;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
 public final class ChannelPortsCreated {
-    private static final Logger logger = LoggerFactory.getLogger(ChannelPortsCreated.class);
+    private static final Logger logger = Logger.getLogger(ChannelPortsCreated.class.getName());
     private final Map<String, ChannelInPort<?>> inputChannels;
     private final Map<String, ChannelOutPort<?>> outputChannels;
 
@@ -19,7 +17,7 @@ public final class ChannelPortsCreated {
     }
     
     private void throwError(String message) {
-        logger.error(message);
+        logger.severe(message);
         throw new IllegalArgumentException(message);
     }
 

@@ -4,14 +4,12 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
 import net.matthiasauer.stwp4j.utils.Pair;
 
 class SchedulerChannel<T> {
-    private static final Logger logger = LoggerFactory.getLogger(SchedulerChannel.class);
+    private static final Logger logger = Logger.getLogger(SchedulerChannel.class.getName());
     private ChannelType type = null;
     
     private final Map<ChannelInPort<T>, Pair<LightweightProcess, PortType>> inChannels =
@@ -35,12 +33,12 @@ class SchedulerChannel<T> {
     
     private void debugMessage(String message) {
         String errorMessage = "channel : " + this.id + " | " + message; 
-        logger.debug(errorMessage);
+        logger.info(errorMessage);
     }
     
     private void errorMessage(String message) {
         String errorMessage = "channel : " + this.id + " | " + message; 
-        logger.error(errorMessage);
+        logger.severe(errorMessage);
     }
 
     public void build() {

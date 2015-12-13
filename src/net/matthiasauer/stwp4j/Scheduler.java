@@ -7,23 +7,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
 public class Scheduler {
-    private static final Logger logger = LoggerFactory.getLogger(Scheduler.class);
-    private static final AtomicInteger instanceCounter =
-            new AtomicInteger(0);
-    private final int id = instanceCounter.incrementAndGet();
+    private static final Logger logger = Logger.getLogger(Scheduler.class.getName());
+    private static int instanceCounter = 0;
+    private final int id = (instanceCounter++);
     private Set<LightweightProcess> processes =
             new HashSet<LightweightProcess>();
     private Map<String, SchedulerChannel<?>> channels =
             new HashMap<String, SchedulerChannel<?>>();
     
     private void throwError(String message) {
-        logger.error(message);
+        logger.severe(message);
         throw new IllegalArgumentException(message);
     }
 
@@ -32,7 +28,7 @@ public class Scheduler {
             throwError(this.id + " | process already added to the scheduler, process : " + lightweightProcess);
         }
 
-        logger.debug(this.id + " | added lightweightProcess to scheduler : " + lightweightProcess);;
+        logger.info(this.id + " | added lightweightProcess to scheduler : " + lightweightProcess);;
         this.processes.add(lightweightProcess);
         
         this.createOutputChannels(lightweightProcess);
@@ -45,7 +41,7 @@ public class Scheduler {
         if (entry == null) {
             entry = new SchedulerChannel(channelId, channelType);
             
-            logger.debug(this.id + " | created a channel : " + channelId);
+            logger.info(this.id + " | created a channel : " + channelId);
             
             this.channels.put(channelId, entry);
         }
@@ -108,7 +104,7 @@ public class Scheduler {
             ExecutionState newState = process.execute();
             
             if (newState == null) {
-                logger.error(this.id + " | ExecutionState 'null' of process : " + process);
+                logger.severe(this.id + " | ExecutionState 'null' of process : " + process);
                 throw new IllegalStateException("returned ExecutionState was null !");
             }
             
