@@ -1,16 +1,16 @@
 package net.matthiasauer.stwp4j;
 
-import java.util.ArrayDeque;
+import java.util.LinkedList;
 
 abstract class ChannelPort<T> {
     private final Class<T> messageType;
-    protected final ArrayDeque<T> messages;
+    protected final LinkedList<T> messages;
     
     protected ChannelPort(Class<T> messageType) {
-        this(messageType, new ArrayDeque<T>());
+        this(messageType, new LinkedList<T>());
     }
     
-    protected ChannelPort(Class<T> messageType, ArrayDeque<T> queue) {
+    protected ChannelPort(Class<T> messageType, LinkedList<T> queue) {
         this.messages = queue;
         this.messageType = messageType;
     }
