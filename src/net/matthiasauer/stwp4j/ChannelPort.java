@@ -1,16 +1,16 @@
 package net.matthiasauer.stwp4j;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.ArrayDeque;
 
 abstract class ChannelPort<T> {
     private final Class<T> messageType;
-    protected final LinkedBlockingQueue<T> messages;
+    protected final ArrayDeque<T> messages;
     
     protected ChannelPort(Class<T> messageType) {
-        this(messageType, new LinkedBlockingQueue<T>());
+        this(messageType, new ArrayDeque<T>());
     }
     
-    protected ChannelPort(Class<T> messageType, LinkedBlockingQueue<T> queue) {
+    protected ChannelPort(Class<T> messageType, ArrayDeque<T> queue) {
         this.messages = queue;
         this.messageType = messageType;
     }

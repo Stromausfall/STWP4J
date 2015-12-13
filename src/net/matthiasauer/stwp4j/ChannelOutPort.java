@@ -12,6 +12,7 @@ public final class ChannelOutPort<T> extends ChannelPort<T> {
     }
 
     void drainTo(Queue<T> toDrainTo) {
-        this.messages.drainTo(toDrainTo);
+        toDrainTo.addAll(this.messages);
+        this.messages.clear();
     }
 }

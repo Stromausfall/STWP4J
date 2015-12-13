@@ -1,9 +1,9 @@
 package net.matthiasauer.stwp4j;
 
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,7 +138,7 @@ class SchedulerChannel<T> {
     public void forwardMessages() {
         if (!this.inChannels.isEmpty() && !this.outChannels.isEmpty()) {
             // get all messages
-            Queue<T> messages = new LinkedBlockingQueue<T>();
+            Queue<T> messages = new ArrayDeque<T>();
             for (ChannelOutPort<T> outPort : this.outChannels.keySet()) {
                 outPort.drainTo(messages);
             }      
