@@ -13,7 +13,6 @@ import net.matthiasauer.stwp4j.ChannelInPort;
 import net.matthiasauer.stwp4j.ChannelOutPort;
 import net.matthiasauer.stwp4j.ChannelPortsCreated;
 import net.matthiasauer.stwp4j.ChannelPortsRequest;
-import net.matthiasauer.stwp4j.ExecutionState;
 import net.matthiasauer.stwp4j.Guard;
 import net.matthiasauer.stwp4j.LightweightProcess;
 import net.matthiasauer.stwp4j.PortType;
@@ -87,7 +86,7 @@ public class GuardTest {
                     }
                     
                     @Override
-                    public ExecutionState execute() {
+                    public void execute(SubIterationRequest request) {
                         this.counter++;
                         
                         switch (this.counter) {
@@ -101,10 +100,10 @@ public class GuardTest {
                             this.channel3.offer((Double)2.5);
                             break;
                         default:
-                            return ExecutionState.Finished;
+                            return;
                         }
 
-                        return ExecutionState.Working;
+                        request.forceTrigger();
                     }
                 });
         
@@ -126,7 +125,7 @@ public class GuardTest {
                     }
                     
                     @Override
-                    public ExecutionState execute() {
+                    public void execute(SubIterationRequest request) {
                         this.counter++;
 
                         List<Object> result = this.guard.poll();
@@ -164,10 +163,10 @@ public class GuardTest {
                                     result.get(2));
                             break;
                         default:
-                            return ExecutionState.Finished;
+                            return;
                         }
                         
-                        return ExecutionState.Working;
+                        request.forceTrigger();
                     }
                 });
         

@@ -7,7 +7,6 @@ import org.junit.Test;
 
 import net.matthiasauer.stwp4j.ChannelPortsCreated;
 import net.matthiasauer.stwp4j.ChannelPortsRequest;
-import net.matthiasauer.stwp4j.ExecutionState;
 import net.matthiasauer.stwp4j.LightweightProcess;
 import net.matthiasauer.stwp4j.PortType;
 import net.matthiasauer.stwp4j.Scheduler;
@@ -28,8 +27,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public ExecutionState execute() {
-                        return ExecutionState.Finished;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override
@@ -63,8 +61,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public ExecutionState execute() {
-                        return ExecutionState.Finished;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override
@@ -84,8 +81,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public ExecutionState execute() {
-                        return ExecutionState.Finished;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override
@@ -105,8 +101,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public ExecutionState execute() {
-                        return ExecutionState.Finished;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override
@@ -126,8 +121,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public ExecutionState execute() {
-                        return ExecutionState.Finished;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override

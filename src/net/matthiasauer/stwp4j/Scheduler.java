@@ -107,13 +107,17 @@ public class Scheduler {
 
             // now check which LightWeightProcesses should be executed again
             int deleted = 0;
+            int upTo = data.size();
 
-            for (int index = 0; index < data.size(); index++) {
-                SimpleEntry<LightweightProcess, SubIterationRequest> element = data.get(index);
+            for (int index = 0; index < upTo; index++) {
+                final int actualIndex = index - deleted;
+                
+                SimpleEntry<LightweightProcess, SubIterationRequest> element = data.get(actualIndex);
                 SubIterationRequest request = element.getValue();
 
-                if (!request.executeInNextSubIteration()) {
-                    data.remove(index - deleted);
+                // remove the LightWeightProcess - because it won't be executed again 
+                if (!request.isExecutedInNextSubIteration()) {
+                    data.remove(actualIndex);
                     deleted++;
                 }
             }

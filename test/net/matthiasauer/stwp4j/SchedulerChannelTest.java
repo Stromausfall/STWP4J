@@ -11,7 +11,6 @@ import net.matthiasauer.stwp4j.ChannelInPort;
 import net.matthiasauer.stwp4j.ChannelOutPort;
 import net.matthiasauer.stwp4j.ChannelPortsCreated;
 import net.matthiasauer.stwp4j.ChannelPortsRequest;
-import net.matthiasauer.stwp4j.ExecutionState;
 import net.matthiasauer.stwp4j.LightweightProcess;
 import net.matthiasauer.stwp4j.PortType;
 import net.matthiasauer.stwp4j.Scheduler;
@@ -23,8 +22,7 @@ public class SchedulerChannelTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public ExecutionState execute() {
-                        return ExecutionState.Finished;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override
@@ -108,9 +106,8 @@ public class SchedulerChannelTest {
                     ChannelOutPort<String> outport;
                     
                     @Override
-                    public ExecutionState execute() {
+                    public void execute(SubIterationRequest request) {
                         outport.offer(testMessage);
-                        return ExecutionState.Finished;
                     }
 
                     @Override
@@ -138,7 +135,7 @@ public class SchedulerChannelTest {
                     int currentCycles = 0;
                     
                     @Override
-                    public ExecutionState execute() {
+                    public void execute(SubIterationRequest request) {
                         String result = inport.poll();
                         this.currentCycles++;
                         
@@ -146,12 +143,10 @@ public class SchedulerChannelTest {
                             output.set(output.get() + result);
                             this.receivedMessages++;
                         }
-                        
-                        if ((this.receivedMessages >= messagesToExpect)
-                                || (this.currentCycles >= maxCycles)) {
-                            return ExecutionState.Finished;
-                        } else {
-                            return ExecutionState.Working;
+
+                        if ((this.receivedMessages < messagesToExpect)
+                                && (this.currentCycles < maxCycles)) {
+                            request.forceTrigger();
                         }
                     }
 
@@ -178,7 +173,7 @@ public class SchedulerChannelTest {
                     int cycles = 0;
                     
                     @Override
-                    public ExecutionState execute() {
+                    public void execute(SubIterationRequest request) {
                         String result = inport.poll();
                         this.cycles++;
                         
@@ -187,9 +182,7 @@ public class SchedulerChannelTest {
                         }
                         
                         if (this.cycles < maxCycles) {
-                            return ExecutionState.Waiting;
-                        } else {
-                            return ExecutionState.Finished;
+                            request.forceTrigger();
                         }
                     }
 
@@ -314,10 +307,10 @@ public class SchedulerChannelTest {
         scheduler.performIteration();
         
         assertEquals(
-                "received message1 was not corrent",
+                "received message1 was not correct",
                 testMessage + testMessage, output1.get());
         assertEquals(
-                "received message1 was not corrent",
+                "received message1 was not correct",
                 testMessage + testMessage, output2.get());
         assertEquals(
                 "received message1 was not corrent",

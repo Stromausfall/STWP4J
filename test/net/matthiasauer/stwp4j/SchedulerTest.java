@@ -15,7 +15,6 @@ import net.matthiasauer.stwp4j.ChannelInPort;
 import net.matthiasauer.stwp4j.ChannelOutPort;
 import net.matthiasauer.stwp4j.ChannelPortsCreated;
 import net.matthiasauer.stwp4j.ChannelPortsRequest;
-import net.matthiasauer.stwp4j.ExecutionState;
 import net.matthiasauer.stwp4j.LightweightProcess;
 import net.matthiasauer.stwp4j.PortType;
 import net.matthiasauer.stwp4j.Scheduler;
@@ -36,8 +35,7 @@ public class SchedulerTest {
         final Scheduler scheduler = new Scheduler();
         final LightweightProcess lightweightProcess =
                 new LightweightProcess(testChannelRequests) {
-                    public ExecutionState execute() {
-                        return ExecutionState.Finished;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override
@@ -61,14 +59,12 @@ public class SchedulerTest {
                 new LightweightProcess(testChannelRequests) {
                     int counter = 0;
             
-                    public ExecutionState execute() {
+                    public void execute(SubIterationRequest request) {
                         data.set(data.get() + counter);
                         counter++;
                         
                         if (counter <= upTo) {
-                            return ExecutionState.Working;
-                        } else {
-                            return ExecutionState.Finished;
+                            request.forceTrigger();
                         }
                     }
 
@@ -108,24 +104,6 @@ public class SchedulerTest {
                 data.get());
     }
 
-    @Test(expected=IllegalStateException.class)
-    public void testSchedulerCausesExceptionIfProcessReturnsNull() {
-        Scheduler scheduler = new Scheduler();
-        scheduler.addProcess(
-                new LightweightProcess(testChannelRequests) {
-                    @Override
-                    public ExecutionState execute() {
-                        return null;
-                    }
-
-                    @Override
-                    public void initialize(ChannelPortsCreated createdChannelPorts) {
-                    }
-                });
-        
-        scheduler.performIteration();
-    }
-
     @Test
     public void testAddProcessCallsInitializeMethod() {
         final AtomicBoolean initializeMethodCalled =
@@ -134,8 +112,7 @@ public class SchedulerTest {
         scheduler.addProcess(
                 new LightweightProcess(testChannelRequests) {
                     @Override
-                    public ExecutionState execute() {
-                        return null;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override
@@ -162,8 +139,7 @@ public class SchedulerTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public ExecutionState execute() {
-                        return null;
+                    public void execute(SubIterationRequest request) {
                     }
 
                     @Override
@@ -192,15 +168,13 @@ public class SchedulerTest {
             }
             
             @Override
-            public ExecutionState execute() {
+            public void execute(SubIterationRequest request) {
                 this.current++;
                 
                 this.outPort.offer(this.current + "");
                 
                 if (this.current < elementsToProduceInIteration) {
-                    return ExecutionState.Waiting;
-                } else {
-                    return ExecutionState.Finished;
+                    request.forceTrigger();
                 }
             }
         };
@@ -237,7 +211,7 @@ public class SchedulerTest {
                     }
                     
                     @Override
-                    public ExecutionState execute() {
+                    public void execute(SubIterationRequest request) {
                         this.counter++;
                         switch (counter) {
                         case 1:
@@ -262,73 +236,14 @@ public class SchedulerTest {
                             expectedChannelIn(inPort);
                             break;
                         default:
-                            return ExecutionState.Finished;
+                            return;
                         }
-                        
-                        return ExecutionState.Waiting;
+
+                        request.forceTrigger();
                     }
                 });
         
         scheduler.performIteration();
-    }
-
-    @Test
-    public void testSchedulerExecutesUntilInStateFinishedIntroduceWorking() {
-        final AtomicReference<String> data = new AtomicReference<String>("");
-        Scheduler scheduler = new Scheduler();
-        // this thread is used to keep the whole thing alive for 4 sub iterations
-        scheduler.addProcess(
-                new LightweightProcess(testChannelRequests) {
-                    int counter = 0;
-                    
-                    @Override
-                    public void initialize(ChannelPortsCreated createdChannelPorts) {
-                    }
-                    
-                    @Override
-                    public ExecutionState execute() {
-                        this.counter++;
-                        
-                        if (this.counter <= 4) {
-                            return ExecutionState.Working;
-                        } else {
-                            return ExecutionState.Finished;
-                        }
-                    }
-                });
-        scheduler.addProcess(
-                new LightweightProcess(testChannelRequests) {
-                    int counter = 0;
-                    
-                    @Override
-                    public void initialize(ChannelPortsCreated createdChannelPorts) {
-                    }
-                    
-                    @Override
-                    public ExecutionState execute() {
-                        this.counter++;
-                        data.set(data.get()+this.counter);
-                        
-                        switch (this.counter) {
-                        case 1:
-                            return ExecutionState.Waiting;
-                        case 2:
-                            return ExecutionState.Working;
-                        case 3:
-                            return ExecutionState.Finished;
-                        default:
-                            break;
-                        }
-                        
-                        return null;
-                    }
-                });
-
-        scheduler.performIteration();
-        assertEquals(
-                "execution states behavior regarding performIteration() is NOT correct !",
-                "123",
-                data.get());
     }
 
     @Test
@@ -357,7 +272,7 @@ public class SchedulerTest {
                     }
                     
                     @Override
-                    protected ExecutionState execute() {
+                    protected void execute(SubIterationRequest request) {
                         this.counter++;
 
                         assertTrue(
@@ -366,9 +281,7 @@ public class SchedulerTest {
                         
                         
                         if (this.counter <= 4) {
-                            return ExecutionState.Working;
-                        } else {
-                            return ExecutionState.Finished;
+                            request.forceTrigger();
                         }
                     }
                 });
@@ -391,7 +304,7 @@ public class SchedulerTest {
                     }
                     
                     @Override
-                    protected ExecutionState execute() {
+                    protected void execute(SubIterationRequest request) {
                         this.counter++;
                         data.set(data.get()+this.counter);
                         
@@ -400,17 +313,11 @@ public class SchedulerTest {
                                 (preIteration.get() == 2) && (postIteration.get() == 0));
                         
                         switch (this.counter) {
-                        case 1:
-                            return ExecutionState.Waiting;
-                        case 2:
-                            return ExecutionState.Working;
                         case 3:
-                            return ExecutionState.Finished;
-                        default:
                             break;
+                        default:
+                            request.forceTrigger();
                         }
-                        
-                        return null;
                     }
                 });
         
@@ -423,56 +330,5 @@ public class SchedulerTest {
         assertTrue(
                 "the pre and post iteration methods have been called by now",
                 (preIteration.get() == 2) && (postIteration.get() == 2));
-    }
-
-    @Test
-    public void testSchedulerExecutesExitsPerformIterationIfAllRemainingProcessesAreWaiting() {
-        final AtomicReference<String> data = new AtomicReference<String>("");
-        Scheduler scheduler = new Scheduler();
-        scheduler.addProcess(
-                new LightweightProcess(testChannelRequests) {
-                    @Override
-                    public void initialize(ChannelPortsCreated createdChannelPorts) {
-                    }
-                    
-                    @Override
-                    public ExecutionState execute() {
-                        return ExecutionState.Waiting;
-                    }
-                });
-        
-        scheduler.addProcess(
-                new LightweightProcess(testChannelRequests) {
-                    int counter = 0;
-                    
-                    @Override
-                    public void initialize(ChannelPortsCreated createdChannelPorts) {
-                    }
-                    
-                    @Override
-                    public ExecutionState execute() {
-                        this.counter++;
-                        data.set(data.get()+this.counter);
-                        
-                        switch (this.counter) {
-                        case 1:
-                            return ExecutionState.Working;
-                        case 2:
-                            return ExecutionState.Waiting;
-                        case 3:
-                            return ExecutionState.Finished;
-                        default:
-                            break;
-                        }
-                        
-                        return null;
-                    }
-                });
-
-        scheduler.performIteration();
-        assertEquals(
-                "after all processes are in waiting we don't want to continue !",
-                "12",
-                data.get());
     }
 }
