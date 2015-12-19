@@ -2,6 +2,7 @@ package net.matthiasauer.stwp4j;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -99,6 +100,19 @@ public class SchedulerTest {
             protected void execute() {
                 while (channel.poll() != null)
                     ;
+            }
+        };
+    }
+
+    private LightweightProcess createCorruptConsumer() {
+        return new LightweightProcess(testConsumerChannelRequests) {
+            @Override
+            protected void initialize(ChannelPortsCreated createdChannelPorts) {
+            }
+
+            @Override
+            protected void execute() {
+                // doesn't consume !
             }
         };
     }
@@ -304,5 +318,46 @@ public class SchedulerTest {
 
         assertTrue("the pre and post iteration methods have been called by now",
                 (preIteration.get() == 2) && (postIteration.get() == 2));
+    }
+
+    @Test
+    public void testNoInPortCausesIllegalStateException() {
+        Scheduler scheduler = new Scheduler();
+        final String channelName = "foo2";
+
+        scheduler.addProcess(this.createProducer("foo2", 100));
+
+        try {
+            scheduler.performIteration();
+        } catch (IllegalStateException exception) {
+            assertEquals(
+                    "message of the thrown exception is incorrect !", "channel '" + channelName
+                            + "' has messages (of type " + String.class + ") to forward but no InPorts !",
+                    exception.getMessage());
+            return;
+        }
+
+        fail("Expected IllegalStateException not thrown !");
+    }
+
+    @Test
+    public void testChannelNotEmptied() {
+        Scheduler scheduler = new Scheduler();
+        final String channelName = "foo";
+
+        scheduler.addProcess(this.createProducer(channelName, 100));
+        scheduler.addProcess(this.createCorruptConsumer());
+
+        try {
+            scheduler.performIteration();
+        } catch (IllegalStateException exception) {
+            assertEquals(
+                    "message of the thrown exception is incorrect !", "channel '" + channelName
+                            + "' (of type " + String.class + ") was NOT empty at the end of the subIteration - each channel has to be always emptied !",
+                    exception.getMessage());
+            return;
+        }
+
+        fail("Expected IllegalStateException not thrown !");
     }
 }

@@ -16,6 +16,14 @@ class SchedulerChannel<T> {
     private final Map<ChannelOutPort<T>, Pair<LightweightProcess, PortType>> outChannels = new HashMap<ChannelOutPort<T>, Pair<LightweightProcess, PortType>>();
     private final String id;
     private final Class<T> messageType;
+    
+    Class<T> getMessageType() {
+        return this.messageType;
+    }
+
+    String getId() {
+        return this.id;
+    }
 
     public SchedulerChannel(String id, Class<T> messageType) {
         this.id = id;
@@ -148,7 +156,7 @@ class SchedulerChannel<T> {
         }
 
         if (this.inChannels.keySet().isEmpty() && !messages.isEmpty()) {
-            throw new NullPointerException("No InPorts for channel '" + this.id + "'");
+            throw new IllegalStateException("channel '" + this.id + "' has messages (of type " + this.messageType + ") to forward but no InPorts !");
         }
     }
 

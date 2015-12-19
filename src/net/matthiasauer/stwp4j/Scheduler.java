@@ -1,9 +1,7 @@
 package net.matthiasauer.stwp4j;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,26 +81,32 @@ public class Scheduler {
 
         // repeat until the iteration has ended
         boolean performSubIteration = true;
-        
+
         while (performSubIteration) {
             performSubIteration = false;
-            
+
             // execute the LightweightProcesses
             for (LightweightProcess process : this.processes) {
-                
+
                 // EXECUTE
                 process.execute();
             }
-            
+
             boolean allChannelsEmpty = true;
 
             // forward stuff immediately... implement something better later !
             for (SchedulerChannel<?> channel : this.channels.values()) {
+                // if a channel was not emptied !
+                if (!channel.allChannelsEmpty()) {
+                    throw new IllegalStateException("channel '" + channel.getId() + "' (of type " + channel.getMessageType()
+                            + ") was NOT empty at the end of the subIteration - each channel has to be always emptied !");
+                }
+
                 channel.forwardMessages();
-                
+
                 allChannelsEmpty = allChannelsEmpty && channel.allChannelsEmpty();
             }
-            
+
             performSubIteration = !allChannelsEmpty;
         }
 
