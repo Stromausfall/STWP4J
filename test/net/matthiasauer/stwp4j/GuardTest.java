@@ -86,7 +86,7 @@ public class GuardTest {
                     }
                     
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                         this.counter++;
                         
                         switch (this.counter) {
@@ -100,10 +100,7 @@ public class GuardTest {
                             this.channel3.offer((Double)2.5);
                             break;
                         default:
-                            return;
                         }
-
-                        request.forceTrigger();
                     }
                 });
         
@@ -125,7 +122,7 @@ public class GuardTest {
                     }
                     
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                         this.counter++;
 
                         List<Object> result = this.guard.poll();
@@ -163,10 +160,7 @@ public class GuardTest {
                                     result.get(2));
                             break;
                         default:
-                            return;
                         }
-                        
-                        request.forceTrigger();
                     }
                 });
         

@@ -33,7 +33,7 @@ public abstract class LightweightProcess {
         return this.channelRequests;
     }
     
-    protected abstract void execute(SubIterationRequest request);
+    protected abstract void execute();
 
     protected abstract void initialize(ChannelPortsCreated createdChannelPorts);
     

@@ -22,7 +22,7 @@ public class SchedulerChannelTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                     }
 
                     @Override
@@ -104,10 +104,20 @@ public class SchedulerChannelTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     ChannelOutPort<String> outport;
+                    boolean executeOnce = false;
                     
                     @Override
-                    public void execute(SubIterationRequest request) {
-                        outport.offer(testMessage);
+                    protected void preIteration() {
+                        executeOnce = true;
+                    }
+                    
+                    @Override
+                    public void execute() {
+                        if (executeOnce) {                        
+                            outport.offer(testMessage);
+                        }
+                        
+                        executeOnce = false;
                     }
 
                     @Override
@@ -121,9 +131,7 @@ public class SchedulerChannelTest {
             final String channelId,
             Scheduler scheduler,
             PortType inPortType,
-            final AtomicReference<String> output,
-            final int messagesToExpect,
-            final int maxCycles) {
+            final AtomicReference<String> output) {
         Collection<ChannelPortsRequest<?>> customChannelRequests =
                 TestUtils.asList(
                         new ChannelPortsRequest<String>(channelId, inPortType, String.class));
@@ -131,22 +139,16 @@ public class SchedulerChannelTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     ChannelInPort<String> inport;
-                    int receivedMessages = 0;
-                    int currentCycles = 0;
                     
                     @Override
-                    public void execute(SubIterationRequest request) {
-                        String result = inport.poll();
-                        this.currentCycles++;
+                    public void execute() {
+                        String result = null;
                         
-                        if (result != null) {
-                            output.set(output.get() + result);
-                            this.receivedMessages++;
-                        }
-
-                        if ((this.receivedMessages < messagesToExpect)
-                                && (this.currentCycles < maxCycles)) {
-                            request.forceTrigger();
+                        // process all input
+                        while((result = inport.poll()) != null) {
+                            if (result != null) {
+                                output.set(output.get() + result);
+                            }
                         }
                     }
 
@@ -161,8 +163,7 @@ public class SchedulerChannelTest {
             final String channelId,
             Scheduler scheduler,
             PortType inPortType,
-            final AtomicReference<String> output,
-            final int maxCycles) {
+            final AtomicReference<String> output) {
         Collection<ChannelPortsRequest<?>> customChannelRequests =
                 TestUtils.asList(
                         new ChannelPortsRequest<String>(channelId, inPortType, String.class));
@@ -170,19 +171,13 @@ public class SchedulerChannelTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     ChannelInPort<String> inport;
-                    int cycles = 0;
                     
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                         String result = inport.poll();
-                        this.cycles++;
                         
                         if (result != null) {
                             output.set(output.get() + result);
-                        }
-                        
-                        if (this.cycles < maxCycles) {
-                            request.forceTrigger();
                         }
                     }
 
@@ -199,7 +194,7 @@ public class SchedulerChannelTest {
         Scheduler scheduler = new Scheduler();
         AtomicReference<String> output = new AtomicReference<String>("");
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.OutputExclusive);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputExclusive, output, 1, 5);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputExclusive, output);
                 
         scheduler.performIteration();
         
@@ -217,9 +212,9 @@ public class SchedulerChannelTest {
         AtomicReference<String> output2 = new AtomicReference<String>("");
         AtomicReference<String> output3 = new AtomicReference<String>("");
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.OutputExclusive);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output1, 1, 5);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output2, 1, 5);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output3, 1, 5);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output1);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output2);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output3);
                 
         scheduler.performIteration();
         
@@ -242,9 +237,9 @@ public class SchedulerChannelTest {
         AtomicReference<String> output2 = new AtomicReference<String>("");
         AtomicReference<String> output3 = new AtomicReference<String>("");
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.OutputExclusive);
-        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output1, 3);
-        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output2, 3);
-        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output3, 3);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output1);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output2);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output3);
                 
         scheduler.performIteration();
         
@@ -261,7 +256,7 @@ public class SchedulerChannelTest {
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputExclusive, output, 3, 5);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputExclusive, output);
                 
         scheduler.performIteration();
         
@@ -280,9 +275,9 @@ public class SchedulerChannelTest {
         AtomicReference<String> output3 = new AtomicReference<String>("");
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
-        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output1, 3);
-        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output2, 3);
-        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output3, 3);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output1);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output2);
+        addDummyLightWeightReceiveUntilCyclesPassedProcessToScheduler(testChannelId, scheduler, PortType.InputShared, output3);
                 
         scheduler.performIteration();
         
@@ -300,9 +295,9 @@ public class SchedulerChannelTest {
         AtomicReference<String> output3 = new AtomicReference<String>("");
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
         addDummyLightWeightSendProcessToScheduler(testChannelId, scheduler, PortType.Output);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output1, 2, 5);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output2, 2, 5);
-        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output3, 2, 5);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output1);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output2);
+        addDummyLightWeightReceiveProcessToScheduler(testChannelId, scheduler, PortType.InputMultiplex, output3);
                 
         scheduler.performIteration();
         

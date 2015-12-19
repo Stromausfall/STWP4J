@@ -70,60 +70,43 @@ public class Scheduler {
     }
 
     public void performIteration() {
-        List<SimpleEntry<LightweightProcess, SubIterationRequest>> data = new LinkedList<SimpleEntry<LightweightProcess, SubIterationRequest>>();
-
         // make sure all channels are built
         for (SchedulerChannel<?> entry : this.channels.values()) {
             entry.build();
         }
 
-        // initialize
+        // PRE-ITERATION
         for (LightweightProcess process : this.processes) {
-            data.add(new SimpleEntry<LightweightProcess, SubIterationRequest>(process, new SubIterationRequest()));
-
             // and execute the preIteration methods
             process.preIteration();
         }
 
         // repeat until the iteration has ended
-        while (!data.isEmpty()) {
+        boolean performSubIteration = true;
+        
+        while (performSubIteration) {
+            performSubIteration = false;
+            
             // execute the LightweightProcesses
-            for (int index = 0; index < data.size(); index++) {
-                SimpleEntry<LightweightProcess, SubIterationRequest> element = data.get(index);
-                LightweightProcess process = element.getKey();
-                SubIterationRequest request = element.getValue();
-
-                // reset the request
-                request.reset();
-
-                // execute it
-                process.execute(request);
+            for (LightweightProcess process : this.processes) {
+                
+                // EXECUTE
+                process.execute();
             }
+            
+            boolean allChannelsEmpty = true;
 
             // forward stuff immediately... implement something better later !
             for (SchedulerChannel<?> channel : this.channels.values()) {
                 channel.forwardMessages();
-            }
-
-            // now check which LightWeightProcesses should be executed again
-            int deleted = 0;
-            int upTo = data.size();
-
-            for (int index = 0; index < upTo; index++) {
-                final int actualIndex = index - deleted;
                 
-                SimpleEntry<LightweightProcess, SubIterationRequest> element = data.get(actualIndex);
-                SubIterationRequest request = element.getValue();
-
-                // remove the LightWeightProcess - because it won't be executed again 
-                if (!request.isExecutedInNextSubIteration()) {
-                    data.remove(actualIndex);
-                    deleted++;
-                }
+                allChannelsEmpty = allChannelsEmpty && channel.allChannelsEmpty();
             }
+            
+            performSubIteration = !allChannelsEmpty;
         }
 
-        // execute all postIteration methods
+        // POST-ITERATION
         for (LightweightProcess process : this.processes) {
             process.postIteration();
         }

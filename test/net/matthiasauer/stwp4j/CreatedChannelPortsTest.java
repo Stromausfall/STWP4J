@@ -27,7 +27,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                     }
 
                     @Override
@@ -61,7 +61,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                     }
 
                     @Override
@@ -81,7 +81,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                     }
 
                     @Override
@@ -101,7 +101,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                     }
 
                     @Override
@@ -121,7 +121,7 @@ public class CreatedChannelPortsTest {
         scheduler.addProcess(
                 new LightweightProcess(customChannelRequests) {
                     @Override
-                    public void execute(SubIterationRequest request) {
+                    public void execute() {
                     }
 
                     @Override
