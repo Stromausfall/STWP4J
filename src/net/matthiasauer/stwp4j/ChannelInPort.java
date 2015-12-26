@@ -1,12 +1,12 @@
 package net.matthiasauer.stwp4j;
 
 public final class ChannelInPort<T> extends ChannelPort<T> {
-    public ChannelInPort(Class<T> channelType) {
+    ChannelInPort(Class<T> channelType) {
         super(channelType);
     }
     
-    public ChannelInPort(Class<T> channelType, ChannelInPort<T> toShareWith) {
-        super(channelType, toShareWith.messages);
+    ChannelInPort(ChannelInPort<T> toShareWith) {
+        super(toShareWith.messageType, toShareWith.messages);
     }
 
     public T poll() {

@@ -3,7 +3,7 @@ package net.matthiasauer.stwp4j;
 import java.util.LinkedList;
 
 abstract class ChannelPort<T> {
-    private final Class<T> messageType;
+    protected final Class<T> messageType;
     protected final LinkedList<T> messages;
     
     protected ChannelPort(Class<T> messageType) {

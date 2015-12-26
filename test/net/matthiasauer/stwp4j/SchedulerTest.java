@@ -4,44 +4,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Collection;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.Before;
 import org.junit.Test;
 
-import net.matthiasauer.stwp4j.ChannelInPort;
-import net.matthiasauer.stwp4j.ChannelOutPort;
-import net.matthiasauer.stwp4j.ChannelPortsCreated;
-import net.matthiasauer.stwp4j.ChannelPortsRequest;
-import net.matthiasauer.stwp4j.LightweightProcess;
-import net.matthiasauer.stwp4j.PortType;
-import net.matthiasauer.stwp4j.Scheduler;
 import net.matthiasauer.stwp4j.TestUtils.TestUtilsExecutable;
 
 public class SchedulerTest {
-    private Collection<ChannelPortsRequest<?>> testChannelRequests;
-    private Collection<ChannelPortsRequest<?>> testConsumerChannelRequests;
-
-    @Before
-    public void setUp() throws Exception {
-        this.testChannelRequests = TestUtils
-                .asList(new ChannelPortsRequest<String>("foo", PortType.Output, String.class));
-        this.testConsumerChannelRequests = TestUtils
-                .asList(new ChannelPortsRequest<String>("foo", PortType.InputExclusive, String.class));
-    }
 
     @Test
     public void testSchedulerAddProcessNoDuplicates() {
         final Scheduler scheduler = new Scheduler();
-        final LightweightProcess lightweightProcess = new LightweightProcess(testChannelRequests) {
+        final LightweightProcess lightweightProcess = new LightweightProcess() {
             public void execute() {
-            }
-
-            @Override
-            public void initialize(ChannelPortsCreated createdChannelPorts) {
             }
         };
 
@@ -54,23 +30,17 @@ public class SchedulerTest {
         }, "process already added to the scheduler");
     }
 
-    private LightweightProcess createTestProcess(final AtomicReference<String> data, final int upTo) {
-        return new LightweightProcess(testChannelRequests) {
+    private LightweightProcess createTestProcess(final ChannelOutPort<String> channel, final AtomicReference<String> data, final int upTo) {
+        return new LightweightProcess() {
             int counter = 0;
-            ChannelOutPort<String> channel;
 
             public void execute() {
                 if (counter <= upTo) {
                     data.set(data.get() + counter);
                     counter++;
 
-                    this.channel.offer(data.get());
+                    channel.offer(data.get());
                 }
-            }
-
-            @Override
-            public void initialize(ChannelPortsCreated createdChannelPorts) {
-                this.channel = createdChannelPorts.getChannelOutPort("foo", String.class);
             }
         };
     }
@@ -79,37 +49,25 @@ public class SchedulerTest {
     public void testSchedulerExecutesUntilInStateFinished() {
         final AtomicReference<String> data = new AtomicReference<String>("");
         Scheduler scheduler = new Scheduler();
-        scheduler.addProcess(this.createTestProcess(data, 4));
-        scheduler.addProcess(this.createConsumer());
+        Channel<String> channel = scheduler.createMultiplexChannel("foo", String.class);
+        scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 4));
+        scheduler.addProcess(this.createConsumer(channel.createInPort()));
         scheduler.performIteration();
 
         assertEquals("incorrect execution of a single lightweight process", "01234", data.get());
     }
 
-    private LightweightProcess createConsumer() {
-        return new LightweightProcess(testConsumerChannelRequests) {
-
-            private ChannelInPort<String> channel;
-
-            @Override
-            protected void initialize(ChannelPortsCreated createdChannelPorts) {
-                this.channel = createdChannelPorts.getChannelInPort("foo", String.class);
-            }
-
+    private LightweightProcess createConsumer(final ChannelInPort<String> channel) {
+        return new LightweightProcess() {
             @Override
             protected void execute() {
-                while (channel.poll() != null)
-                    ;
+                while (channel.poll() != null);
             }
         };
     }
 
     private LightweightProcess createCorruptConsumer() {
-        return new LightweightProcess(testConsumerChannelRequests) {
-            @Override
-            protected void initialize(ChannelPortsCreated createdChannelPorts) {
-            }
-
+        return new LightweightProcess() {
             @Override
             protected void execute() {
                 // doesn't consume !
@@ -121,75 +79,28 @@ public class SchedulerTest {
     public void testSchedulerExecutesMultipleProcessesConcurrently() {
         final AtomicReference<String> data = new AtomicReference<String>("");
         Scheduler scheduler = new Scheduler();
-        scheduler.addProcess(this.createTestProcess(data, 4));
-        scheduler.addProcess(this.createTestProcess(data, 5));
-        scheduler.addProcess(this.createTestProcess(data, 3));
-        scheduler.addProcess(this.createTestProcess(data, 4));
-        scheduler.addProcess(this.createTestProcess(data, 2));
-        scheduler.addProcess(this.createConsumer());
+        Channel<String> channel = scheduler.createMultiplexChannel("foo", String.class);
+        scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 4));
+        scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 5));
+        scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 3));
+        scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 4));
+        scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 2));
+        scheduler.addProcess(this.createConsumer(channel.createInPort()));
         scheduler.performIteration();
 
         assertEquals("incorrect execution of a single lightweight process", "00000111112222233334445", data.get());
     }
 
-    @Test
-    public void testAddProcessCallsInitializeMethod() {
-        final AtomicBoolean initializeMethodCalled = new AtomicBoolean(false);
-        Scheduler scheduler = new Scheduler();
-        scheduler.addProcess(new LightweightProcess(testChannelRequests) {
-            @Override
-            public void execute() {
-            }
-
-            @Override
-            public void initialize(ChannelPortsCreated createdChannelPorts) {
-                initializeMethodCalled.set(true);
-            }
-        });
-
-        assertTrue("initialize method was not called after adding process", initializeMethodCalled.get());
-    }
-
-    @Test
-    public void testAddProcessCallsInitializeMethodAndChannelsAreCreated() {
-        Scheduler scheduler = new Scheduler();
-        Collection<ChannelPortsRequest<?>> customChannelRequests = TestUtils.asList(
-                new ChannelPortsRequest<String>("foo1", PortType.Output, String.class),
-                new ChannelPortsRequest<String>("foo2", PortType.Output, String.class),
-                new ChannelPortsRequest<String>("foo3", PortType.InputMultiplex, String.class),
-                new ChannelPortsRequest<String>("foo4", PortType.InputMultiplex, String.class),
-                new ChannelPortsRequest<String>("foo5", PortType.InputShared, String.class));
-        scheduler.addProcess(new LightweightProcess(customChannelRequests) {
-            @Override
-            public void execute() {
-            }
-
-            @Override
-            public void initialize(ChannelPortsCreated createdChannelPorts) {
-                assertEquals("number of output channels not correct", 2,
-                        createdChannelPorts.getChannelOutPorts().size());
-                assertEquals("number of input channels not correct", 3, createdChannelPorts.getChannelInPorts().size());
-            }
-        });
-    }
-
-    private LightweightProcess createProducer(final String channelName, final int elementsToProduceInIteration) {
-        return new LightweightProcess(
-                TestUtils.asList(new ChannelPortsRequest<String>(channelName, PortType.Output, String.class))) {
+    private LightweightProcess createProducer(final ChannelOutPort<String> outPort, final int elementsToProduceInIteration) {
+        return new LightweightProcess() {
             int current = 0;
-            ChannelOutPort<String> outPort;
-
-            @Override
-            public void initialize(ChannelPortsCreated createdChannelPorts) {
-                this.outPort = createdChannelPorts.getChannelOutPort(channelName, String.class);
-            }
 
             @Override
             public void execute() {
                 this.current++;
 
                 if (this.current <= elementsToProduceInIteration) {
-                    this.outPort.offer(this.current + "");
+                    outPort.offer(this.current + "");
                 }
             }
         };
@@ -205,19 +116,14 @@ public class SchedulerTest {
     @Test
     public void testChannelsForwardOnlyAfterEachTaskHasBeenCalled() {
         final String channelName = "foo foo fo :)";
-        Scheduler scheduler = new Scheduler();
-        scheduler.addProcess(this.createProducer(channelName, 5));
-        scheduler.addProcess(this.createProducer(channelName, 5));
-        scheduler.addProcess(this.createProducer(channelName, 4));
-        scheduler.addProcess(new LightweightProcess(
-                TestUtils.asList(new ChannelPortsRequest<String>(channelName, PortType.InputExclusive, String.class))) {
-            ChannelInPort<String> inPort;
+        final Scheduler scheduler = new Scheduler();
+        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class);
+        scheduler.addProcess(this.createProducer(channel.createOutPort(), 5));
+        scheduler.addProcess(this.createProducer(channel.createOutPort(), 5));
+        scheduler.addProcess(this.createProducer(channel.createOutPort(), 4));
+        scheduler.addProcess(new LightweightProcess() {
+            final ChannelInPort<String> inPort = channel.createInPort();
             int counter = 0;
-
-            @Override
-            public void initialize(ChannelPortsCreated createdChannelPorts) {
-                this.inPort = createdChannelPorts.getChannelInPort(channelName, String.class);
-            }
 
             @Override
             public void execute() {
@@ -261,7 +167,7 @@ public class SchedulerTest {
         Scheduler scheduler = new Scheduler();
         // this thread is used to keep the whole thing alive for 4 sub
         // iterations
-        scheduler.addProcess(new LightweightProcess(testChannelRequests) {
+        scheduler.addProcess(new LightweightProcess() {
             @Override
             protected void preIteration() {
                 preIteration.incrementAndGet();
@@ -273,17 +179,13 @@ public class SchedulerTest {
             }
 
             @Override
-            protected void initialize(ChannelPortsCreated createdChannelPorts) {
-            }
-
-            @Override
             protected void execute() {
                 assertTrue(
                         "the pre iteration method should be called and the post iteration method should not be called by now !",
                         (preIteration.get() == 2) && (postIteration.get() == 0));
             }
         });
-        scheduler.addProcess(new LightweightProcess(testChannelRequests) {
+        scheduler.addProcess(new LightweightProcess() {
             int counter = 0;
 
             @Override
@@ -294,10 +196,6 @@ public class SchedulerTest {
             @Override
             protected void postIteration() {
                 postIteration.incrementAndGet();
-            }
-
-            @Override
-            protected void initialize(ChannelPortsCreated createdChannelPorts) {
             }
 
             @Override
@@ -324,8 +222,9 @@ public class SchedulerTest {
     public void testNoInPortCausesIllegalStateException() {
         Scheduler scheduler = new Scheduler();
         final String channelName = "foo2";
+        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class);
 
-        scheduler.addProcess(this.createProducer("foo2", 100));
+        scheduler.addProcess(this.createProducer(channel.createOutPort(), 100));
 
         try {
             scheduler.performIteration();
@@ -344,8 +243,12 @@ public class SchedulerTest {
     public void testChannelNotEmptied() {
         Scheduler scheduler = new Scheduler();
         final String channelName = "foo";
+        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class);
 
-        scheduler.addProcess(this.createProducer(channelName, 100));
+        scheduler.addProcess(this.createProducer(channel.createOutPort(), 100));
+        
+        // create an InPort that is not used !
+        channel.createInPort();
         scheduler.addProcess(this.createCorruptConsumer());
 
         try {

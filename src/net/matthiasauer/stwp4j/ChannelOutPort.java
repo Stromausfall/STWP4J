@@ -3,7 +3,7 @@ package net.matthiasauer.stwp4j;
 import java.util.Queue;
 
 public final class ChannelOutPort<T> extends ChannelPort<T> {
-    public ChannelOutPort(Class<T> channelType) {
+    ChannelOutPort(Class<T> channelType) {
         super(channelType);
     }
 
