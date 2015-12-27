@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
-class Channel<T> {
+public class Channel<T> {
     private final InputPortType inputType;
     private final Set<ChannelInPort<T>> inPorts;
     private final Set<ChannelOutPort<T>> outPorts;
