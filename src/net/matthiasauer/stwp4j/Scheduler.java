@@ -11,22 +11,24 @@ public class Scheduler {
 
     public void addProcess(LightweightProcess lightweightProcess) {
         if (this.processes.contains(lightweightProcess)) {
-            throw new IllegalArgumentException(this.id + " | process already added to the scheduler, process : " + lightweightProcess);
+            throw new IllegalArgumentException(
+                    this.id + " | process already added to the scheduler, process : " + lightweightProcess);
         }
 
         this.processes.add(lightweightProcess);
     }
 
-    public <T> Channel<T> createSharedChannel(String id, Class<T> messageType) {
-        Channel<T> channel = new Channel<T>(InputPortType.Shared, id, messageType);
+    public <T> Channel<T> createSharedChannel(String id, Class<T> messageType, boolean mustBeEmptyAfterEachIteration) {
+        Channel<T> channel = new Channel<T>(InputPortType.Shared, id, messageType, mustBeEmptyAfterEachIteration);
 
         this.channels.add(channel);
 
         return channel;
     }
 
-    public <T> Channel<T> createMultiplexChannel(String id, Class<T> messageType) {
-        Channel<T> channel = new Channel<T>(InputPortType.Multiplex, id, messageType);
+    public <T> Channel<T> createMultiplexChannel(String id, Class<T> messageType,
+            boolean mustBeEmptyAfterEachIteration) {
+        Channel<T> channel = new Channel<T>(InputPortType.Multiplex, id, messageType, mustBeEmptyAfterEachIteration);
 
         this.channels.add(channel);
 
@@ -53,28 +55,24 @@ public class Scheduler {
                 process.execute();
             }
 
-            boolean allChannelsEmpty = true;
+            int forwardedMessages = 0;
 
-            // forward stuff immediately... implement something better later !
+            // forward messages and check whether anything was forwarded
             for (Channel<?> channel : this.channels) {
-                // if a channel was not emptied !
-                if (!channel.allChannelsEmpty()) {
-                    throw new IllegalStateException("channel '" + channel.getId() + "' (of type "
-                            + channel.getMessageType()
-                            + ") was NOT empty at the end of the subIteration - each channel has to be always emptied !");
-                }
-
-                channel.forwardMessages();
-
-                allChannelsEmpty = allChannelsEmpty && channel.allChannelsEmpty();
+                forwardedMessages += channel.forwardMessages();
             }
 
-            performSubIteration = !allChannelsEmpty;
+            performSubIteration = (forwardedMessages != 0);
         }
 
         // POST-ITERATION
         for (LightweightProcess process : this.processes) {
             process.postIteration();
+        }
+
+        // POST-ITERATION channel checks
+        for (Channel<?> channel : this.channels) {
+            channel.performPostIterationCheck();
         }
     }
 }

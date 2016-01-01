@@ -7,11 +7,17 @@ import java.util.Queue;
 import java.util.Set;
 
 public class Channel<T> {
+    public static enum ChannelMessageHandleType {
+        MustBeEmtpyAfterEachSubIteration,
+
+    }
+
     private final InputPortType inputType;
     private final Set<ChannelInPort<T>> inPorts;
     private final Set<ChannelOutPort<T>> outPorts;
     private final String id;
     private final Class<T> messageType;
+    private final boolean mustBeEmptyAfterEachIteration;
 
     Class<T> getMessageType() {
         return this.messageType;
@@ -21,7 +27,8 @@ public class Channel<T> {
         return this.id;
     }
 
-    Channel(InputPortType inputType, String id, Class<T> messageType) {
+    Channel(InputPortType inputType, String id, Class<T> messageType, boolean mustBeEmptyAfterEachIteration) {
+        this.mustBeEmptyAfterEachIteration = mustBeEmptyAfterEachIteration;
         this.inputType = inputType;
         this.id = id;
         this.messageType = messageType;
@@ -36,7 +43,7 @@ public class Channel<T> {
 
         return outPort;
     }
-    
+
     public ChannelInPort<T> createInPort() {
         switch (this.inputType) {
         case Multiplex:
@@ -47,12 +54,12 @@ public class Channel<T> {
             throw new NullPointerException("Unknown InputPortType : " + this.inputType);
         }
     }
-    
+
     private ChannelInPort<T> createMultiplexInPort() {
         ChannelInPort<T> inPort = new ChannelInPort<T>(this.messageType);
-        
+
         this.inPorts.add(inPort);
-        
+
         return inPort;
     }
 
@@ -70,26 +77,26 @@ public class Channel<T> {
 
         return inPort;
     }
-    
+
     private void distributeMessagesMultiplex(Queue<T> messages) {
         for (ChannelInPort<T> inPort : this.inPorts) {
             inPort.messages.addAll(messages);
         }
     }
-    
+
     private void distributeMessagesShared(Queue<T> messages) {
         if (this.inPorts.isEmpty()) {
             // nothing to do !
             return;
         }
-        
+
         ChannelInPort<T> channelInPort = this.inPorts.iterator().next();
         List<T> uniqueInPortMessageCollections = channelInPort.messages;
-        
+
         uniqueInPortMessageCollections.addAll(messages);
     }
 
-    void forwardMessages() {
+    int forwardMessages() {
         // get all messages
         Queue<T> messages = new LinkedList<T>();
         for (ChannelOutPort<T> outPort : this.outPorts) {
@@ -112,15 +119,18 @@ public class Channel<T> {
             throw new IllegalStateException("channel '" + this.id + "' has messages (of type " + this.messageType
                     + ") to forward but no InPorts !");
         }
+
+        return messages.size();
     }
 
-    boolean allChannelsEmpty() {
-        for (ChannelInPort<T> inPort : this.inPorts) {
-            if (inPort.peek() != null) {
-                return false;
+    void performPostIterationCheck() {
+        if (this.mustBeEmptyAfterEachIteration) {
+            for (ChannelInPort<T> inPort : this.inPorts) {
+                if (inPort.peek() != null) {
+                    throw new IllegalStateException("channel '" + this.getId() + "' (of type " + this.getMessageType()
+                            + ") was NOT empty at the end of the iteration - this channel has to be empty !");
+                }
             }
         }
-
-        return true;
     }
 }
