@@ -18,6 +18,7 @@ public class Channel<T> {
     private final String id;
     private final Class<T> messageType;
     private final boolean mustBeEmptyAfterEachIteration;
+    private final boolean allowMessagesWithoutHavingInPorts;
 
     Class<T> getMessageType() {
         return this.messageType;
@@ -27,7 +28,8 @@ public class Channel<T> {
         return this.id;
     }
 
-    Channel(InputPortType inputType, String id, Class<T> messageType, boolean mustBeEmptyAfterEachIteration) {
+    Channel(InputPortType inputType, String id, Class<T> messageType, boolean mustBeEmptyAfterEachIteration, boolean allowMessagesWithoutHavingInPorts) {
+        this.allowMessagesWithoutHavingInPorts = allowMessagesWithoutHavingInPorts;
         this.mustBeEmptyAfterEachIteration = mustBeEmptyAfterEachIteration;
         this.inputType = inputType;
         this.id = id;
@@ -115,9 +117,11 @@ public class Channel<T> {
             throw new NullPointerException("Unknown InputPortType : " + this.inputType);
         }
 
-        if (this.inPorts.isEmpty() && !messages.isEmpty()) {
-            throw new IllegalStateException("channel '" + this.id + "' has messages (of type " + this.messageType
-                    + ") to forward but no InPorts !");
+        if (!this.allowMessagesWithoutHavingInPorts) {
+            if (this.inPorts.isEmpty() && !messages.isEmpty()) {
+                throw new IllegalStateException("channel '" + this.id + "' has messages (of type " + this.messageType
+                        + ") to forward but no InPorts !");
+            }
         }
 
         return messages.size();

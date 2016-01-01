@@ -18,17 +18,20 @@ public class Scheduler {
         this.processes.add(lightweightProcess);
     }
 
-    public <T> Channel<T> createSharedChannel(String id, Class<T> messageType, boolean mustBeEmptyAfterEachIteration) {
-        Channel<T> channel = new Channel<T>(InputPortType.Shared, id, messageType, mustBeEmptyAfterEachIteration);
+    public <T> Channel<T> createSharedChannel(String id, Class<T> messageType, boolean mustBeEmptyAfterEachIteration,
+            boolean allowMessagesWithoutHavingInPorts) {
+        Channel<T> channel = new Channel<T>(InputPortType.Shared, id, messageType, mustBeEmptyAfterEachIteration,
+                allowMessagesWithoutHavingInPorts);
 
         this.channels.add(channel);
 
         return channel;
     }
 
-    public <T> Channel<T> createMultiplexChannel(String id, Class<T> messageType,
-            boolean mustBeEmptyAfterEachIteration) {
-        Channel<T> channel = new Channel<T>(InputPortType.Multiplex, id, messageType, mustBeEmptyAfterEachIteration);
+    public <T> Channel<T> createMultiplexChannel(String id, Class<T> messageType, boolean mustBeEmptyAfterEachIteration,
+            boolean allowMessagesWithoutHavingInPorts) {
+        Channel<T> channel = new Channel<T>(InputPortType.Multiplex, id, messageType, mustBeEmptyAfterEachIteration,
+                allowMessagesWithoutHavingInPorts);
 
         this.channels.add(channel);
 

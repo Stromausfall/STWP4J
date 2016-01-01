@@ -49,7 +49,7 @@ public class SchedulerTest {
     public void testSchedulerExecutesUntilInStateFinished() {
         final AtomicReference<String> data = new AtomicReference<String>("");
         Scheduler scheduler = new Scheduler();
-        Channel<String> channel = scheduler.createMultiplexChannel("foo", String.class, true);
+        Channel<String> channel = scheduler.createMultiplexChannel("foo", String.class, true, false);
         scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 4));
         scheduler.addProcess(this.createConsumer(channel.createInPort()));
         scheduler.performIteration();
@@ -79,7 +79,7 @@ public class SchedulerTest {
     public void testSchedulerExecutesMultipleProcessesConcurrently() {
         final AtomicReference<String> data = new AtomicReference<String>("");
         Scheduler scheduler = new Scheduler();
-        Channel<String> channel = scheduler.createMultiplexChannel("foo", String.class, true);
+        Channel<String> channel = scheduler.createMultiplexChannel("foo", String.class, true, false);
         scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 4));
         scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 5));
         scheduler.addProcess(this.createTestProcess(channel.createOutPort(), data, 3));
@@ -117,7 +117,7 @@ public class SchedulerTest {
     public void testChannelsForwardOnlyAfterEachTaskHasBeenCalled() {
         final String channelName = "foo foo fo :)";
         final Scheduler scheduler = new Scheduler();
-        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, true);
+        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, true, false);
         scheduler.addProcess(this.createProducer(channel.createOutPort(), 5));
         scheduler.addProcess(this.createProducer(channel.createOutPort(), 5));
         scheduler.addProcess(this.createProducer(channel.createOutPort(), 4));
@@ -222,7 +222,7 @@ public class SchedulerTest {
     public void testNoInPortCausesIllegalStateException() {
         Scheduler scheduler = new Scheduler();
         final String channelName = "foo2";
-        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, true);
+        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, true, false);
 
         scheduler.addProcess(this.createProducer(channel.createOutPort(), 100));
 
@@ -240,10 +240,25 @@ public class SchedulerTest {
     }
 
     @Test
+    public void testNoInPortCausesNoIllegalStateException() {
+        Scheduler scheduler = new Scheduler();
+        final String channelName = "foo2";
+        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, true, true);
+
+        scheduler.addProcess(this.createProducer(channel.createOutPort(), 100));
+
+        try {
+            scheduler.performIteration();
+        } catch (IllegalStateException exception) {
+            fail("Expected NO IllegalStateException to be  thrown !");
+        }
+    }
+
+    @Test
     public void testChannelNotEmptied() {
         Scheduler scheduler = new Scheduler();
         final String channelName = "foo";
-        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, true);
+        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, true, false);
 
         scheduler.addProcess(this.createProducer(channel.createOutPort(), 100));
         
@@ -268,7 +283,7 @@ public class SchedulerTest {
     public void testChannelNotEmptiedButChannelDoesntNeedToBeEmtpied() {
         Scheduler scheduler = new Scheduler();
         final String channelName = "foo";
-        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, false);
+        final Channel<String> channel = scheduler.createMultiplexChannel(channelName, String.class, false, false);
 
         scheduler.addProcess(this.createProducer(channel.createOutPort(), 100));
         
@@ -279,7 +294,7 @@ public class SchedulerTest {
         try {
             scheduler.performIteration();
         } catch (IllegalStateException exception) {
-            fail("Expected IllegalStateException thrown !");
+            fail("Expected NO IllegalStateException to be  thrown !");
         }
     }
 }

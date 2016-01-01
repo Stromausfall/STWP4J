@@ -70,7 +70,7 @@ public class SchedulerChannelTest {
         final String testChannelId = "test1223";
         Scheduler scheduler = new Scheduler();
         AtomicReference<String> output = new AtomicReference<String>("");
-        Channel<String> channel = scheduler.createMultiplexChannel(testChannelId, String.class, true);
+        Channel<String> channel = scheduler.createMultiplexChannel(testChannelId, String.class, true, false);
         addDummyLightWeightSendProcessToScheduler(channel, scheduler);
         addDummyLightWeightReceiveProcessToScheduler(channel, scheduler, output);
 
@@ -83,7 +83,7 @@ public class SchedulerChannelTest {
     public void testOneToManyMultiplexChannel() {
         final String testChannelId = "test1223";
         Scheduler scheduler = new Scheduler();
-        Channel<String> channel = scheduler.createMultiplexChannel(testChannelId, String.class, true);
+        Channel<String> channel = scheduler.createMultiplexChannel(testChannelId, String.class, true, false);
         AtomicReference<String> output1 = new AtomicReference<String>("");
         AtomicReference<String> output2 = new AtomicReference<String>("");
         AtomicReference<String> output3 = new AtomicReference<String>("");
@@ -103,7 +103,7 @@ public class SchedulerChannelTest {
     public void testOneToManySharedChannel() {
         final String testChannelId = "test1223";
         Scheduler scheduler = new Scheduler();
-        Channel<String> channel = scheduler.createSharedChannel(testChannelId, String.class, true);
+        Channel<String> channel = scheduler.createSharedChannel(testChannelId, String.class, true, false);
         AtomicReference<String> output1 = new AtomicReference<String>("");
         AtomicReference<String> output2 = new AtomicReference<String>("");
         AtomicReference<String> output3 = new AtomicReference<String>("");
@@ -122,7 +122,7 @@ public class SchedulerChannelTest {
     public void testManyToOneChannel() {
         final String testChannelId = "test1223";
         Scheduler scheduler = new Scheduler();
-        Channel<String> channel = scheduler.createMultiplexChannel(testChannelId, String.class, true);
+        Channel<String> channel = scheduler.createMultiplexChannel(testChannelId, String.class, true, false);
         AtomicReference<String> output = new AtomicReference<String>("");
         addDummyLightWeightSendProcessToScheduler(channel, scheduler);
         addDummyLightWeightSendProcessToScheduler(channel, scheduler);
@@ -138,7 +138,7 @@ public class SchedulerChannelTest {
     public void testManyToManySharedChannel() {
         final String testChannelId = "test1223";
         Scheduler scheduler = new Scheduler();
-        Channel<String> channel = scheduler.createSharedChannel(testChannelId, String.class, true);
+        Channel<String> channel = scheduler.createSharedChannel(testChannelId, String.class, true, false);
         AtomicReference<String> output1 = new AtomicReference<String>("");
         AtomicReference<String> output2 = new AtomicReference<String>("");
         AtomicReference<String> output3 = new AtomicReference<String>("");
@@ -158,7 +158,7 @@ public class SchedulerChannelTest {
     public void testManyToManyMultiplexChannel() {
         final String testChannelId = "test1223";
         Scheduler scheduler = new Scheduler();
-        Channel<String> channel = scheduler.createMultiplexChannel(testChannelId, String.class, true);
+        Channel<String> channel = scheduler.createMultiplexChannel(testChannelId, String.class, true, false);
         AtomicReference<String> output1 = new AtomicReference<String>("");
         AtomicReference<String> output2 = new AtomicReference<String>("");
         AtomicReference<String> output3 = new AtomicReference<String>("");
