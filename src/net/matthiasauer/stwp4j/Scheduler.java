@@ -86,5 +86,7 @@ public class Scheduler {
         for (Channel<?> channel : this.channels) {
             channel.performPostIterationCheck();
         }
+        
+        this.forwardMessages();
     }
 }

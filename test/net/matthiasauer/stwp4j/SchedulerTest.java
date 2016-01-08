@@ -327,4 +327,32 @@ public class SchedulerTest {
         
         assertEquals("not correctly forwarded !", 1, parts.size());  
     }
+    
+    @Test
+    public void testMessagesAreCorrectlyForwardedFromPost() {
+        final Scheduler scheduler = new Scheduler();
+        final Channel<String> channel = scheduler.createMultiplexChannel("a", String.class, false, false);
+        final ChannelInPort<String> inPort = channel.createInPort();
+        final ChannelOutPort<String> outPort = channel.createOutPort();
+        
+        final LightweightProcess lightweightProcess = new LightweightProcess() {
+            @Override
+            protected void preIteration() {
+            }
+            
+            @Override
+            protected void execute() {
+            }
+            
+            @Override
+            protected void postIteration() {
+                outPort.offer("1");
+            }
+        };
+
+        scheduler.addProcess(lightweightProcess);
+        scheduler.performIteration();
+        
+        assertEquals("message offered in postIteration not forwarded !", "1", inPort.poll());  
+    }
 }
