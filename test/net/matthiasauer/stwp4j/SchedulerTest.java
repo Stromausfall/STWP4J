@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -296,5 +298,33 @@ public class SchedulerTest {
         } catch (IllegalStateException exception) {
             fail("Expected NO IllegalStateException to be  thrown !");
         }
+    }
+    
+    @Test
+    public void testMessagesAreCorrectlyForwardedFromPreToExecute() {
+        final Scheduler scheduler = new Scheduler();
+        final Set<String> parts = new HashSet<String>();
+        final Channel<String> channel = scheduler.createMultiplexChannel("a", String.class, false, false);
+        final ChannelInPort<String> inPort = channel.createInPort();
+        final ChannelOutPort<String> outPort = channel.createOutPort();
+        
+        final LightweightProcess lightweightProcess = new LightweightProcess() {
+            @Override
+            protected void preIteration() {
+                outPort.offer("1");
+            }
+            
+            @Override
+            protected void execute() {
+                String message = inPort.poll();
+                assertEquals("1", message);
+                parts.add(message);
+            }
+        };
+
+        scheduler.addProcess(lightweightProcess);
+        scheduler.performIteration();
+        
+        assertEquals("not correctly forwarded !", 1, parts.size());  
     }
 }

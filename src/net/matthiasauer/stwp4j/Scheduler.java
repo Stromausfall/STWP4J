@@ -37,6 +37,16 @@ public class Scheduler {
 
         return channel;
     }
+    
+    private int forwardMessages() {
+        int forwardedMessages = 0;
+        
+        for (Channel<?> channel : this.channels) {
+            forwardedMessages += channel.forwardMessages();
+        }
+        
+        return forwardedMessages;
+    }
 
     public void performIteration() {
         // PRE-ITERATION
@@ -44,6 +54,9 @@ public class Scheduler {
             // and execute the preIteration methods
             process.preIteration();
         }
+        
+        // forward messages from PRE-iteration
+        this.forwardMessages();
 
         // repeat until the iteration has ended
         boolean performSubIteration = true;
@@ -58,12 +71,8 @@ public class Scheduler {
                 process.execute();
             }
 
-            int forwardedMessages = 0;
-
             // forward messages and check whether anything was forwarded
-            for (Channel<?> channel : this.channels) {
-                forwardedMessages += channel.forwardMessages();
-            }
+            final int forwardedMessages = forwardMessages();
 
             performSubIteration = (forwardedMessages != 0);
         }
